@@ -2,6 +2,31 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 
+// Helper to format database/validation errors for user-friendly responses
+const formatError = (error) => {
+  // MongoDB Duplicate Key Error (E11000)
+  if (error.code === 11000) {
+    if (error.keyValue && error.keyValue.email) {
+      return 'An account with this email address already exists';
+    }
+    const fields = Object.keys(error.keyValue || {});
+    if (fields.length > 0) {
+      const field = fields[0];
+      const capitalizedField = field.charAt(0).toUpperCase() + field.slice(1);
+      return `${capitalizedField} already exists. Please use a different value.`;
+    }
+    return 'A user with these details already exists';
+  }
+
+  // Mongoose Validation Error
+  if (error.name === 'ValidationError') {
+    const messages = Object.values(error.errors).map(err => err.message);
+    return messages.join(', ');
+  }
+
+  return error.message || 'An unexpected error occurred';
+};
+
 // In-memory user fallback store when MongoDB connection is inactive
 const inMemoryUsers = [
   {
@@ -148,7 +173,9 @@ const registerUser = async (req, res) => {
     }
   } catch (error) {
     console.error('Register error:', error);
-    return res.status(500).json({ success: false, message: error.message || 'Server error during registration' });
+    const friendlyMessage = formatError(error);
+    const statusCode = (error.code === 11000 || error.name === 'ValidationError') ? 400 : 500;
+    return res.status(statusCode).json({ success: false, message: friendlyMessage });
   }
 };
 
@@ -215,7 +242,9 @@ const loginUser = async (req, res) => {
     }
   } catch (error) {
     console.error('Login error:', error);
-    return res.status(500).json({ success: false, message: error.message || 'Server error during login' });
+    const friendlyMessage = formatError(error);
+    const statusCode = (error.name === 'ValidationError') ? 400 : 500;
+    return res.status(statusCode).json({ success: false, message: friendlyMessage });
   }
 };
 
