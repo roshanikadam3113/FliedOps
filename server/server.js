@@ -22,13 +22,17 @@ app.use('/api/jobs', jobRoutes);
 
 // Serve static assets in production
 const path = require('path');
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/dist')));
+const fs = require('fs');
+
+const clientDistPath = path.join(__dirname, '../client/dist');
+
+if (process.env.NODE_ENV === 'production' && fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
   app.get('*all', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '../client', 'dist', 'index.html'));
+    res.sendFile(path.resolve(clientDistPath, 'index.html'));
   });
 } else {
-  // Test route for development
+  // Test route for development or when static build is not present (e.g. backend-only deploy on Render)
   app.get("/", (req, res) => {
     res.json({
       message: "FieldOps API is running",
