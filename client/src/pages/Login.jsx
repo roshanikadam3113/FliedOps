@@ -75,9 +75,9 @@ export default function Login() {
   };
 
   const getRolePlaceholder = () => {
-    if (selectedRole === 'admin') return 'admin@fieldops.com';
-    if (selectedRole === 'technician') return 'rahul@fieldops.com';
-    return 'roshani@gmail.com';
+    if (selectedRole === 'admin') return 'admin@test.com';
+    if (selectedRole === 'technician') return 'tech@test.com';
+    return 'client@test.com';
   };
 
   return (
