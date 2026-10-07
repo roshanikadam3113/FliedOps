@@ -14,9 +14,9 @@ export default function ProtectedRoute({ children, allowedRoles }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F4F6F8] flex flex-col items-center justify-center space-y-4 font-sans">
-        <Loader2 className="w-10 h-10 text-[#F97316] animate-spin" />
-        <p className="text-xs font-extrabold uppercase tracking-widest text-[#64748B]">
+      <div className="min-h-screen bg-page-bg flex flex-col items-center justify-center space-y-4 font-sans">
+        <Loader2 className="w-10 h-10 text-brand-accent animate-spin" />
+        <p className="text-xs font-extrabold uppercase tracking-widest text-text-secondary">
           Authenticating Session...
         </p>
       </div>

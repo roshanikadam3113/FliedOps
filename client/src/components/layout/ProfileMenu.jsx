@@ -66,26 +66,24 @@ export default function ProfileMenu({ userRole = 'ADMIN' }) {
           </div>
 
           <div className="space-y-0.5">
-            {userRole === 'ADMIN' && (
-              <>
-                <Link
-                  to={profilePath}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#334155] hover:text-[#0F172A] hover:bg-slate-50 rounded-lg transition-colors"
-                >
-                  <User className="w-4 h-4 text-[#0284C7]" />
-                  My Profile
-                </Link>
+            <Link
+              to={profilePath}
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#334155] hover:text-[#0F172A] hover:bg-slate-50 rounded-lg transition-colors"
+            >
+              <User className="w-4 h-4 text-[#0284C7]" />
+              My Profile
+            </Link>
 
-                <Link
-                  to={profilePath}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#334155] hover:text-[#0F172A] hover:bg-slate-50 rounded-lg transition-colors"
-                >
-                  <Settings className="w-4 h-4 text-[#334155]" />
-                  Settings
-                </Link>
-              </>
+            {userRole === 'ADMIN' && (
+              <Link
+                to="/admin/settings"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#334155] hover:text-[#0F172A] hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                <Settings className="w-4 h-4 text-[#334155]" />
+                Settings
+              </Link>
             )}
           </div>
 

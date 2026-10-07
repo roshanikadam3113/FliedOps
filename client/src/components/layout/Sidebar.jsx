@@ -35,35 +35,35 @@ export default function Sidebar({ userRole = 'ADMIN', onCloseMobile }) {
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-[#E2E8F0] flex flex-col h-full shrink-0 select-none">
+    <aside className="w-64 bg-surface-primary border-r border-border-subtle flex flex-col h-full shrink-0 select-none">
       
       {/* Sidebar Header (Logo & Role Badge) */}
-      <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+      <div className="h-[68px] px-4 border-b border-border-subtle flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-[#F97316] flex items-center justify-center text-white font-bold shadow-xs">
+          <div className="w-7 h-7 rounded-lg bg-brand-accent flex items-center justify-center text-white font-bold shadow-xs">
             <Activity className="w-4 h-4 stroke-[2.5]" />
           </div>
-          <span className="text-base font-extrabold tracking-tight text-[#0F172A]">
-            Field<span className="text-[#F97316]">Ops</span>
+          <span className="text-base font-extrabold tracking-tight text-text-primary">
+            Field<span className="text-brand-accent">Ops</span>
           </span>
         </Link>
 
-        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 text-[#334155] border border-slate-200">
+        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-surface-secondary text-text-secondary border border-border-subtle">
           {userRole}
         </span>
       </div>
 
       {/* Role Sub-title Banner */}
-      <div className="px-4 py-2.5 bg-[#F4F6F8] border-b border-[#E2E8F0]">
-        <div className="text-xs font-bold text-[#0F172A]">{currentNav.title}</div>
-        <div className="text-[10px] font-medium text-[#64748B]">Operational Navigation</div>
+      <div className="px-4 py-2.5 bg-page-bg border-b border-border-subtle">
+        <div className="text-xs font-bold text-text-primary">{currentNav.title}</div>
+        <div className="text-[10px] font-medium text-text-secondary">Operational Navigation</div>
       </div>
 
       {/* Dynamic Role Navigation Items */}
       <div className="flex-grow overflow-y-auto px-3 py-4 space-y-5">
         {currentNav.sections.map((section, sIdx) => (
           <div key={sIdx} className="space-y-1">
-            <div className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-[#64748B]">
+            <div className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-text-secondary">
               {section.section}
             </div>
 
@@ -79,13 +79,13 @@ export default function Sidebar({ userRole = 'ADMIN', onCloseMobile }) {
                     onClick={onCloseMobile}
                     className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-bold transition-all duration-150 relative ${
                       isActive
-                        ? 'bg-orange-50/80 text-[#0F172A] border-l-4 border-[#F97316] font-extrabold shadow-2xs pl-2.5'
-                        : 'text-[#334155] hover:text-[#0F172A] hover:bg-slate-50 font-semibold'
+                        ? 'bg-brand-accent/10 text-text-primary border-l-4 border-brand-accent font-extrabold shadow-2xs pl-2.5'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-surface-secondary font-semibold'
                     }`}
                   >
                     <IconComp
                       className={`w-4 h-4 shrink-0 transition-colors ${
-                        isActive ? 'text-[#F97316]' : 'text-[#64748B]'
+                        isActive ? 'text-brand-accent' : 'text-text-secondary'
                       }`}
                     />
                     <span className="truncate">{item.label}</span>
@@ -98,10 +98,10 @@ export default function Sidebar({ userRole = 'ADMIN', onCloseMobile }) {
       </div>
 
       {/* Bottom Profile / Quick Logout Area */}
-      <div className="p-3 border-t border-slate-100 bg-white">
+      <div className="p-3 border-t border-border-subtle bg-surface-primary">
         <button
           onClick={handleSidebarLogout}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold text-[#334155] hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+          className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold text-text-secondary hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
         >
           <span>Logout</span>
           <LogOut className="w-3.5 h-3.5" />

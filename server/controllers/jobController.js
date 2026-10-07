@@ -1,423 +1,271 @@
-const JobRequest = require('../models/JobRequest');
-const User = require('../models/User');
-const mongoose = require('mongoose');
+const Job = require('../models/Job');
+const ServiceRequest = require('../models/ServiceRequest');
+const Invoice = require('../models/Invoice');
+const { notifyUser } = require('../services/notificationService');
+const { JOB_STATUS, INVOICE_STATUS, REQUEST_STATUS, NOTIFICATION_EVENTS } = require('../utils/constants');
+const { aggregateJobData, aggregateMultipleJobData, emitSocketEvent } = require('./requestController');
 
-// Helper to check MongoDB connection status
-const isDbConnected = () => {
-  return mongoose.connection && mongoose.connection.readyState === 1;
-};
-
-// Mock In-Memory Technicians matching the Auth demo users
-const demoTechnicians = {
-  demo_tech_1: {
-    _id: 'demo_tech_1',
-    name: 'Rahul Sharma',
-    email: 'rahul@fieldops.com',
-    role: 'technician',
-    phone: '+91 98123 45678',
-    specialty: 'AC & HVAC',
-    rating: 4.9
-  }
-};
-
-// Pre-populated demo jobs for the customer (Roshani Kadam: demo_cust_1)
-const inMemoryJobs = [
-  {
-    _id: 'job_demo_1',
-    customer: 'demo_cust_1',
-    title: 'AC Cooling Leakage & Servicing',
-    description: 'AC unit in bedroom is dripping water from the indoor fan blower and not cooling efficiently.',
-    category: 'AC & HVAC',
-    status: 'in-progress',
-    urgency: 'high',
-    location: 'Sector 62, Kolhapur',
-    scheduledDate: '2026-08-26 at 11:30 AM',
-    technician: demoTechnicians.demo_tech_1,
-    invoice: {
-      amount: 1800,
-      isPaid: false
-    },
-    review: null,
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000) // 1 day ago
-  },
-  {
-    _id: 'job_demo_2',
-    customer: 'demo_cust_1',
-    title: 'Kitchen Tap Leakage Repair',
-    description: 'The kitchen sink tap is dripping constantly even when turned off tightly. Water is pooling under the cabinet.',
-    category: 'Plumbing',
-    status: 'completed',
-    urgency: 'medium',
-    location: 'Sector 62, Kolhapur',
-    scheduledDate: '2026-08-24 at 09:30 AM',
-    technician: demoTechnicians.demo_tech_1,
-    invoice: {
-      amount: 850,
-      isPaid: true,
-      paidAt: new Date(Date.now() - 12 * 60 * 60 * 1000)
-    },
-    review: {
-      rating: 5,
-      comment: 'Excellent work by Rahul! He arrived right on time and replaced the washer in 15 minutes. Very polite.',
-      createdAt: new Date(Date.now() - 11.5 * 60 * 60 * 1000)
-    },
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) // 3 days ago
-  },
-  {
-    _id: 'job_demo_3',
-    customer: 'demo_cust_1',
-    title: 'Power Outage in Living Room Socket Line',
-    description: 'A sudden spark occurred in the main TV wall socket line, now all sockets in the living room have lost power.',
-    category: 'Electrical',
-    status: 'pending',
-    urgency: 'critical',
-    location: 'Sector 62, Kolhapur',
-    scheduledDate: '2026-08-25 at 04:00 PM',
-    technician: null,
-    invoice: {
-      amount: 0,
-      isPaid: false
-    },
-    review: null,
-    createdAt: new Date()
-  }
-];
-
-// @desc    Create new service request
-// @route   POST /api/jobs/create
-// @access  Private (Customer only)
-const createJobRequest = async (req, res) => {
-  try {
-    const { title, description, category, urgency, location, scheduledDate } = req.body;
-
-    if (!title || !description || !location || !scheduledDate) {
-      return res.status(400).json({ success: false, message: 'Please fill in all required fields' });
-    }
-
-    const customerId = req.user._id;
-
-    if (isDbConnected()) {
-      const job = await JobRequest.create({
-        customer: customerId,
-        title,
-        description,
-        category: category || 'General Maintenance',
-        urgency: urgency || 'medium',
-        location,
-        scheduledDate,
-        invoice: { amount: 0, isPaid: false }
-      });
-
-      return res.status(201).json({ success: true, job });
-    } else {
-      const newJob = {
-        _id: `job_${Date.now()}`,
-        customer: customerId,
-        title,
-        description,
-        category: category || 'General Maintenance',
-        status: 'pending',
-        urgency: urgency || 'medium',
-        location,
-        scheduledDate,
-        technician: null,
-        invoice: { amount: 0, isPaid: false },
-        review: null,
-        createdAt: new Date()
-      };
-
-      inMemoryJobs.push(newJob);
-      return res.status(201).json({ success: true, job: newJob });
-    }
-  } catch (error) {
-    console.error('Create job error:', error);
-    return res.status(500).json({ success: false, message: 'Server error creating request' });
-  }
-};
-
-// @desc    Get all jobs for logged-in customer
-// @route   GET /api/jobs/my-jobs
-// @access  Private (Customer only)
-const getCustomerJobs = async (req, res) => {
-  try {
-    const customerId = req.user._id;
-
-    if (isDbConnected()) {
-      const jobs = await JobRequest.find({ customer: customerId })
-        .populate('technician', 'name email phone specialty rating')
-        .sort({ createdAt: -1 });
-
-      return res.status(200).json({ success: true, jobs });
-    } else {
-      // Return filtered in-memory jobs
-      const jobs = inMemoryJobs
-        .filter(j => j.customer === customerId)
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-      return res.status(200).json({ success: true, jobs });
-    }
-  } catch (error) {
-    console.error('Fetch customer jobs error:', error);
-    return res.status(500).json({ success: false, message: 'Server error fetching service requests' });
-  }
-};
-
-// @desc    Pay service request invoice (Mock checkout)
-// @route   PUT /api/jobs/:id/pay
-// @access  Private (Customer only)
-const payInvoice = async (req, res) => {
-  try {
-    const jobId = req.params.id;
-
-    if (isDbConnected()) {
-      const job = await JobRequest.findById(jobId);
-      if (!job) {
-        return res.status(404).json({ success: false, message: 'Service request not found' });
-      }
-
-      job.invoice.isPaid = true;
-      job.invoice.paidAt = new Date();
-      await job.save();
-
-      return res.status(200).json({ success: true, job });
-    } else {
-      const jobIndex = inMemoryJobs.findIndex(j => j._id === jobId);
-      if (jobIndex === -1) {
-        return res.status(404).json({ success: false, message: 'Service request not found' });
-      }
-
-      inMemoryJobs[jobIndex].invoice.isPaid = true;
-      inMemoryJobs[jobIndex].invoice.paidAt = new Date();
-
-      return res.status(200).json({ success: true, job: inMemoryJobs[jobIndex] });
-    }
-  } catch (error) {
-    console.error('Pay invoice error:', error);
-    return res.status(500).json({ success: false, message: 'Server error processing payment' });
-  }
-};
-
-// @desc    Submit rating and review feedback for a completed job
-// @route   PUT /api/jobs/:id/review
-// @access  Private (Customer only)
-const submitReview = async (req, res) => {
-  try {
-    const jobId = req.params.id;
-    const { rating, comment } = req.body;
-
-    if (!rating) {
-      return res.status(400).json({ success: false, message: 'Please provide a rating star between 1 and 5' });
-    }
-
-    if (isDbConnected()) {
-      const job = await JobRequest.findById(jobId);
-      if (!job) {
-        return res.status(404).json({ success: false, message: 'Service request not found' });
-      }
-
-      job.review = {
-        rating,
-        comment: comment || '',
-        createdAt: new Date()
-      };
-      await job.save();
-
-      return res.status(200).json({ success: true, job });
-    } else {
-      const jobIndex = inMemoryJobs.findIndex(j => j._id === jobId);
-      if (jobIndex === -1) {
-        return res.status(404).json({ success: false, message: 'Service request not found' });
-      }
-
-      inMemoryJobs[jobIndex].review = {
-        rating,
-        comment: comment || '',
-        createdAt: new Date()
-      };
-
-      return res.status(200).json({ success: true, job: inMemoryJobs[jobIndex] });
-    }
-  } catch (error) {
-    console.error('Submit review error:', error);
-    return res.status(500).json({ success: false, message: 'Server error submitting review' });
-  }
-};
-
-// @desc    Get all jobs for technician (assigned to him or pending)
-// @route   GET /api/jobs/tech-jobs
-// @access  Private (Technician only)
-const getTechnicianJobs = async (req, res) => {
+const getTechnicianJobs = async (req, res, next) => {
   try {
     const techId = req.user._id;
 
-    if (isDbConnected()) {
-      const jobs = await JobRequest.find({
-        $or: [{ technician: techId }, { status: 'pending' }]
+    // A technician sees jobs assigned to them OR pending requests
+    const pendingRequests = await ServiceRequest.find({ status: REQUEST_STATUS.PENDING })
+      .populate('customer', 'name email phone location')
+      .lean();
+      
+    const techJobs = await Job.find({ technician: techId })
+      .populate({
+        path: 'serviceRequest',
+        populate: { path: 'customer', select: 'name email phone location' }
       })
-        .populate('customer', 'name email phone')
-        .sort({ createdAt: -1 });
+      .lean();
 
-      return res.status(200).json({ success: true, jobs });
-    } else {
-      const jobs = inMemoryJobs
-        .filter(j => (j.technician && (j.technician === techId || j.technician._id === techId)) || j.status === 'pending')
+    // Map them all to the unified frontend format
+    const aggregatedPending = pendingRequests.map(r => ({
+      ...r,
+      _id: r._id,
+      invoice: { amount: 0, serviceCharge: 500, partsTotal: 0, tax: 0, isPaid: false },
+      review: null
+    }));
+
+    const validServiceRequests = techJobs.map(j => j.serviceRequest).filter(Boolean);
+    const accurateAssigned = await aggregateMultipleJobData(validServiceRequests);
+
+    const jobs = [...aggregatedPending, ...accurateAssigned]
+        .map(job => ({ ...job, status: job.status ? job.status.toLowerCase() : '' }))
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-      return res.status(200).json({ success: true, jobs });
-    }
+    return res.status(200).json({ success: true, jobs });
   } catch (error) {
-    console.error('Fetch technician jobs error:', error);
-    return res.status(500).json({ success: false, message: 'Server error fetching technician jobs' });
+    res.status(500);
+    next(error);
   }
 };
 
-// @desc    Accept a pending job request
-// @route   PUT /api/jobs/:id/accept
-// @access  Private (Technician only)
-const acceptJob = async (req, res) => {
+const acceptJob = async (req, res, next) => {
   try {
-    const jobId = req.params.id;
+    const requestId = req.params.id; // Frontend passes jobId which is now ServiceRequest ID
     const techId = req.user._id;
-    const techName = req.user.name || 'Rahul Sharma';
+    const techName = req.user.name;
 
-    if (isDbConnected()) {
-      const job = await JobRequest.findById(jobId);
-      if (!job) {
-        return res.status(404).json({ success: false, message: 'Job not found' });
-      }
-      if (job.status !== 'pending') {
-        return res.status(400).json({ success: false, message: 'Job is already accepted or assigned' });
-      }
-
-      job.technician = techId;
-      job.status = 'assigned';
-      await job.save();
-
-      return res.status(200).json({ success: true, job });
-    } else {
-      const jobIndex = inMemoryJobs.findIndex(j => j._id === jobId);
-      if (jobIndex === -1) {
-        return res.status(404).json({ success: false, message: 'Job not found' });
-      }
-      if (inMemoryJobs[jobIndex].status !== 'pending') {
-        return res.status(400).json({ success: false, message: 'Job is already accepted or assigned' });
-      }
-
-      inMemoryJobs[jobIndex].technician = {
-        _id: techId,
-        name: techName,
-        email: req.user.email,
-        phone: req.user.phone || '+91 98123 45678',
-        specialty: req.user.specialty || 'HVAC Specialist',
-        rating: 4.9
-      };
-      inMemoryJobs[jobIndex].status = 'assigned';
-
-      return res.status(200).json({ success: true, job: inMemoryJobs[jobIndex] });
+    const request = await ServiceRequest.findById(requestId);
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Request not found' });
     }
+    if (request.status !== REQUEST_STATUS.PENDING) {
+      return res.status(400).json({ success: false, message: 'Request is already accepted or assigned' });
+    }
+
+    // Instructor rule: matching area and specialty
+    if (req.user.location.toLowerCase() !== request.location.toLowerCase()) {
+      return res.status(400).json({ success: false, message: 'Your area must match the request location' });
+    }
+    const requestCategory = request.category || 'General Maintenance';
+    if (req.user.specialty.toLowerCase() !== requestCategory.toLowerCase()) {
+      return res.status(400).json({ success: false, message: 'Your specialty must match the request category' });
+    }
+
+    request.assignedTechnician = techId;
+    request.status = REQUEST_STATUS.ASSIGNED;
+    request.statusHistory.push({ status: 'assigned', note: `Assigned to technician ${techName}`, timestamp: new Date() });
+    await request.save();
+
+    // Create the Job entity
+    const job = new Job({
+      serviceRequest: request._id,
+      customer: request.customer,
+      technician: techId,
+      scheduledDate: request.scheduledDate,
+      status: JOB_STATUS.ASSIGNED,
+      statusHistory: [{ status: 'assigned', note: `Job assigned to ${techName}`, timestamp: new Date() }]
+    });
+    await job.save();
+
+    await notifyUser(req.app, {
+      userId: request.customer,
+      title: 'Technician Assigned',
+      message: `Technician ${techName} has been assigned to your service request "${request.title}".`,
+      type: 'dispatch',
+      relatedEntity: 'Job',
+      relatedEntityId: job._id,
+      channels: ['inApp', 'email', 'sms']
+    });
+
+    const aggregated = await aggregateJobData(request.toObject());
+    emitSocketEvent(req, request.customer, 'technicianAssigned', aggregated);
+    emitSocketEvent(req, request.customer, 'serviceStatusUpdated', aggregated);
+
+    return res.status(200).json({ success: true, job: aggregated });
   } catch (error) {
-    console.error('Accept job error:', error);
-    return res.status(500).json({ success: false, message: 'Server error accepting job' });
+    res.status(500);
+    next(error);
   }
 };
 
-// @desc    Update job status (e.g. to in-progress)
-// @route   PUT /api/jobs/:id/status
-// @access  Private (Technician only)
-const updateJobStatus = async (req, res) => {
+const updateJobStatus = async (req, res, next) => {
   try {
-    const jobId = req.params.id;
-    const { status } = req.body;
+    const requestId = req.params.id;
+    const { status } = req.body; // on-the-way, arrived, in-progress
 
-    if (!['assigned', 'in-progress'].includes(status)) {
+    const job = await Job.findOne({ serviceRequest: requestId });
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+
+    if (job.technician.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized to update this job' });
+    }
+
+    if (job.status === JOB_STATUS.COMPLETED || job.status === JOB_STATUS.CANCELLED) {
+      return res.status(400).json({ success: false, message: 'Cannot update a completed or cancelled job' });
+    }
+
+    const validStatuses = [JOB_STATUS.ASSIGNED, JOB_STATUS.ON_THE_WAY, JOB_STATUS.ARRIVED, JOB_STATUS.IN_PROGRESS];
+    if (!validStatuses.includes(status)) {
       return res.status(400).json({ success: false, message: 'Invalid status update for technician' });
     }
 
-    if (isDbConnected()) {
-      const job = await JobRequest.findById(jobId);
-      if (!job) {
-        return res.status(404).json({ success: false, message: 'Job not found' });
-      }
-
-      job.status = status;
-      await job.save();
-
-      return res.status(200).json({ success: true, job });
-    } else {
-      const jobIndex = inMemoryJobs.findIndex(j => j._id === jobId);
-      if (jobIndex === -1) {
-        return res.status(404).json({ success: false, message: 'Job not found' });
-      }
-
-      inMemoryJobs[jobIndex].status = status;
-      return res.status(200).json({ success: true, job: inMemoryJobs[jobIndex] });
+    job.status = status;
+    job.statusHistory.push({ status, note: `Status updated to ${status}`, timestamp: new Date() });
+    
+    if (status === JOB_STATUS.IN_PROGRESS && !job.startedAt) {
+      job.startedAt = new Date();
     }
+    
+    await job.save();
+
+    // Also update request visually if needed, though aggregated object pulls from Job
+    const request = await ServiceRequest.findById(requestId).populate('assignedTechnician').lean();
+
+    const statusLabels = {
+      [JOB_STATUS.ON_THE_WAY]: 'Technician On the Way',
+      [JOB_STATUS.ARRIVED]: 'Technician Arrived',
+      [JOB_STATUS.IN_PROGRESS]: 'Service Started'
+    };
+    
+    let channels = ['inApp'];
+    if (status === JOB_STATUS.ON_THE_WAY) channels.push('sms');
+
+    await notifyUser(req.app, {
+      userId: job.customer,
+      title: statusLabels[status] || 'Status Updated',
+      message: `Status for service "${request.title}" updated to ${status.replace('-', ' ')}.`,
+      type: 'status',
+      relatedEntity: 'Job',
+      relatedEntityId: job._id,
+      channels
+    });
+
+    const aggregated = await aggregateJobData(request);
+    emitSocketEvent(req, job.customer, 'serviceStatusUpdated', aggregated);
+
+    return res.status(200).json({ success: true, job: aggregated });
   } catch (error) {
-    console.error('Update status error:', error);
-    return res.status(500).json({ success: false, message: 'Server error updating job status' });
+    res.status(500);
+    next(error);
   }
 };
 
-// @desc    Complete job with service notes and parts
-// @route   PUT /api/jobs/:id/complete
-// @access  Private (Technician only)
-const completeJob = async (req, res) => {
+const completeJob = async (req, res, next) => {
   try {
-    const jobId = req.params.id;
+    const requestId = req.params.id;
     const { serviceNotes, parts } = req.body;
 
-    // Calculate final invoice amount
-    // Base service charge is 500 INR
-    let partsAmount = 0;
-    const loggedParts = parts || [];
-    loggedParts.forEach(p => {
-      partsAmount += (p.price || 0) * (p.quantity || 1);
-    });
-    const totalAmount = 500 + partsAmount;
-
-    if (isDbConnected()) {
-      const job = await JobRequest.findById(jobId);
-      if (!job) {
-        return res.status(404).json({ success: false, message: 'Job not found' });
-      }
-
-      job.status = 'completed';
-      job.serviceNotes = serviceNotes || '';
-      job.invoice = {
-        amount: totalAmount,
-        isPaid: false,
-        parts: loggedParts
-      };
-
-      await job.save();
-      return res.status(200).json({ success: true, job });
-    } else {
-      const jobIndex = inMemoryJobs.findIndex(j => j._id === jobId);
-      if (jobIndex === -1) {
-        return res.status(404).json({ success: false, message: 'Job not found' });
-      }
-
-      inMemoryJobs[jobIndex].status = 'completed';
-      inMemoryJobs[jobIndex].serviceNotes = serviceNotes || '';
-      inMemoryJobs[jobIndex].invoice = {
-        amount: totalAmount,
-        isPaid: false,
-        parts: loggedParts
-      };
-
-      return res.status(200).json({ success: true, job: inMemoryJobs[jobIndex] });
+    const job = await Job.findOne({ serviceRequest: requestId });
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
     }
+
+    if (job.technician.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized to complete this job' });
+    }
+
+    if (job.status === JOB_STATUS.COMPLETED || job.status === JOB_STATUS.CANCELLED) {
+      return res.status(400).json({ success: false, message: 'Job is already completed or cancelled' });
+    }
+
+    let partsAmount = 0;
+    const loggedParts = job.partsUsed || [];
+    const invoiceParts = loggedParts.map(p => {
+      partsAmount += p.total;
+      return {
+        name: p.name,
+        price: p.unitPrice,
+        quantity: p.quantity
+      };
+    });
+    const serviceCharge = 500;
+    const totalAmount = serviceCharge + partsAmount;
+
+    job.status = JOB_STATUS.COMPLETED;
+    job.serviceNotes = serviceNotes || '';
+    job.completedAt = new Date();
+    job.statusHistory.push({ status: 'completed', note: 'Service completed by technician', timestamp: new Date() });
+    await job.save();
+
+    // Update ServiceRequest status as well to avoid inconsistency
+    await ServiceRequest.findByIdAndUpdate(requestId, { status: REQUEST_STATUS.ASSIGNED }); // Or COMPLETED if you want
+
+    // Generate Invoice
+    const existingInvoice = await Invoice.findOne({ job: job._id });
+    if (existingInvoice) {
+      return res.status(400).json({ success: false, message: 'Invoice already exists for this job' });
+    }
+
+    // Generate unique human-readable invoice number
+    // Format: INV-YYYY-XXXXXX
+    const lastInvoice = await Invoice.findOne().sort({ createdAt: -1 });
+    let nextNumber = '000001';
+    if (lastInvoice && lastInvoice.invoiceNumber) {
+      const parts = lastInvoice.invoiceNumber.split('-');
+      if (parts.length === 3) {
+        const lastCount = parseInt(parts[2], 10);
+        if (!isNaN(lastCount)) {
+          nextNumber = (lastCount + 1).toString().padStart(6, '0');
+        }
+      }
+    }
+    const currentYear = new Date().getFullYear();
+    const invoiceNumber = `INV-${currentYear}-${nextNumber}`;
+
+    const invoice = new Invoice({
+      invoiceNumber,
+      job: job._id,
+      customer: job.customer,
+      serviceCharge,
+      parts: invoiceParts,
+      partsTotal: partsAmount,
+      tax: 0,
+      totalAmount,
+      status: INVOICE_STATUS.PENDING
+    });
+    await invoice.save();
+
+    const request = await ServiceRequest.findById(requestId).populate('assignedTechnician').lean();
+
+    await notifyUser(req.app, {
+      userId: job.customer,
+      title: 'Service Completed & Invoice Generated',
+      message: `Your service "${request.title}" has been completed. Invoice total: ₹${totalAmount}.`,
+      type: 'billing',
+      relatedEntity: 'Invoice',
+      relatedEntityId: invoice._id,
+      channels: ['inApp', 'email', 'sms']
+    });
+
+    const aggregated = await aggregateJobData(request);
+    emitSocketEvent(req, job.customer, 'invoiceGenerated', aggregated);
+    emitSocketEvent(req, job.customer, 'serviceStatusUpdated', aggregated);
+
+    return res.status(200).json({ success: true, job: aggregated });
   } catch (error) {
-    console.error('Complete job error:', error);
-    return res.status(500).json({ success: false, message: 'Server error completing job' });
+    res.status(500);
+    next(error);
   }
 };
 
 module.exports = {
-  createJobRequest,
-  getCustomerJobs,
-  payInvoice,
-  submitReview,
   getTechnicianJobs,
   acceptJob,
   updateJobStatus,

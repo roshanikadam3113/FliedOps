@@ -2,8 +2,8 @@ const mongoose = require("mongoose");
 
 const connectDB = async () => {
   try {
-    const mongoUri = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/fieldops";
-    const conn = await mongoose.connect(mongoUri);
+    const mongoUrl = process.env.MONGO_URL || "mongodb://127.0.0.1:27017/fieldops";
+    const conn = await mongoose.connect(mongoUrl);
     console.log(`MongoDB Connected: ${conn.connection.host}`);
 
     // Drop legacy 'roll_1' index if it exists on the users collection
@@ -22,8 +22,8 @@ const connectDB = async () => {
       console.warn(`Could not check or drop legacy indexes: ${indexError.message}`);
     }
   } catch (error) {
-    console.warn(`MongoDB Atlas Warning: ${error.message}`);
-    console.log('Server remaining active with local / demo memory store fallback.');
+    console.error(`MongoDB Connection Error: ${error.message}`);
+    process.exit(1); // Exit process with failure
   }
 };
 

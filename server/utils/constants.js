@@ -1,0 +1,51 @@
+const REQUEST_STATUS = {
+  PENDING: 'pending',
+  REVIEWED: 'reviewed',
+  ASSIGNED: 'assigned',
+  CANCELLED: 'cancelled'
+};
+
+const JOB_STATUS = {
+  ASSIGNED: 'assigned',
+  ACCEPTED: 'accepted',
+  ON_THE_WAY: 'on-the-way',
+  ARRIVED: 'arrived',
+  IN_PROGRESS: 'in-progress',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled'
+};
+
+const INVOICE_STATUS = {
+  PENDING: 'pending',
+  PAID: 'paid',
+  CANCELLED: 'cancelled'
+};
+
+const PAYMENT_STATUS = {
+  PENDING: 'pending',
+  SUCCESS: 'success',
+  FAILED: 'failed',
+  REFUNDED: 'refunded'
+};
+
+const NOTIFICATION_EVENTS = {
+  SERVICE_REQUEST_CREATED: 'SERVICE_REQUEST_CREATED',
+  TECHNICIAN_ASSIGNED: 'TECHNICIAN_ASSIGNED',
+  JOB_STATUS_UPDATED: 'JOB_STATUS_UPDATED',
+  JOB_COMPLETED: 'JOB_COMPLETED',
+  INVOICE_CREATED: 'INVOICE_CREATED',
+  PAYMENT_SUCCESS: 'PAYMENT_SUCCESS',
+  PAYMENT_FAILED: 'PAYMENT_FAILED',
+  REVIEW_SUBMITTED: 'REVIEW_SUBMITTED',
+  LOW_STOCK: 'LOW_STOCK',
+  STOCK_OUT: 'STOCK_OUT',
+  AI_STOCK_RISK: 'AI_STOCK_RISK'
+};
+
+module.exports = {
+  REQUEST_STATUS,
+  JOB_STATUS,
+  INVOICE_STATUS,
+  PAYMENT_STATUS,
+  NOTIFICATION_EVENTS
+};

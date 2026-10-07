@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getJobs, payInvoice } from '../../services/jobService';
+import { getMyInvoices } from '../../services/jobService';
+import { apiRequest } from '../../utils/api';
 import { 
   Receipt, 
   CreditCard, 
@@ -10,20 +11,24 @@ import {
   ArrowLeft,
   Calendar,
   Wrench,
-  Sparkles
+  Sparkles,
+  Eye,
+  Printer,
+  X,
+  FileText
 } from 'lucide-react';
 
 export default function MyInvoices() {
-  const [jobs, setJobs] = useState([]);
+  const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [payingJobId, setPayingJobId] = useState(null);
+  const [payingInvoiceId, setPayingInvoiceId] = useState(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [viewInvoice, setViewInvoice] = useState(null);
 
-  const fetchJobs = async () => {
+  const fetchInvoices = async () => {
     try {
-      const fetchedJobs = await getJobs();
-      // Keep completed or active jobs that have an invoice amount
-      setJobs(fetchedJobs.filter(j => j.invoice && j.invoice.amount > 0));
+      const fetchedInvoices = await getMyInvoices();
+      setInvoices(fetchedInvoices);
     } catch (err) {
       console.error(err);
     } finally {
@@ -32,60 +37,68 @@ export default function MyInvoices() {
   };
 
   useEffect(() => {
-    fetchJobs();
+    fetchInvoices();
+    
+    const query = new URLSearchParams(window.location.search);
+    if (query.get('success')) {
+      setPaymentSuccess(true);
+      setTimeout(() => setPaymentSuccess(false), 4000);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
   }, []);
 
-  const handlePay = async (jobId) => {
-    setPayingJobId(jobId);
+  const handlePay = async (invoice, jobId) => {
+    setPayingInvoiceId(invoice._id);
     try {
-      // Simulate 1.5s bank gateway processing latency
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      const updatedJob = await payInvoice(jobId);
-      if (updatedJob) {
-        setPaymentSuccess(true);
-        setTimeout(() => {
-          setPaymentSuccess(false);
-          setPayingJobId(null);
-          fetchJobs(); // Reload jobs from service to sync
-        }, 1500);
+      const data = await apiRequest(`/payments/invoices/${invoice._id}/pay`, { method: 'POST' });
+      if (data && data.success && data.url) {
+        window.location.href = data.url; // Redirect to Stripe Checkout
+      } else {
+        throw new Error('Failed to initialize Stripe checkout');
       }
     } catch (err) {
       console.error(err);
-      setPayingJobId(null);
+      setPayingInvoiceId(null);
     }
   };
 
-  const paidInvoices = jobs.filter(j => j.invoice.isPaid);
-  const unpaidInvoices = jobs.filter(j => !j.invoice.isPaid);
-  const totalOutstanding = unpaidInvoices.reduce((sum, j) => sum + j.invoice.amount, 0);
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const paidInvoices = invoices.filter(inv => inv.status === 'paid');
+  const unpaidInvoices = invoices.filter(inv => inv.status === 'pending');
+  const totalOutstanding = unpaidInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
 
   return (
-    <div className="space-y-6 font-sans antialiased text-[#0F172A] max-w-4xl mx-auto">
+    <div className="space-y-6 font-sans antialiased text-text-primary">
       
-      {/* Navigation Top */}
+      {/* Navigation Top - Full Width */}
       <div className="flex items-center justify-between">
         <Link 
           to="/customer/dashboard"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#64748B] hover:text-[#0F172A] transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-text-secondary hover:text-text-primary transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Dashboard
         </Link>
-        <span className="text-[10px] font-black uppercase text-[#64748B] tracking-wider">
+        <span className="text-[10px] font-black uppercase text-text-secondary tracking-wider">
           Billing & Invoices
         </span>
       </div>
 
+      <div className="max-w-4xl mx-auto space-y-6">
+
       {/* Payment Success Overlay Modal */}
       {paymentSuccess && (
-        <div className="fixed inset-0 bg-[#0F172A]/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-xs w-full text-center space-y-4 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-500 mx-auto shadow-md">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface-primary rounded-3xl p-8 max-w-xs w-full text-center space-y-4 shadow-2xl border border-border-subtle animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mx-auto shadow-sm">
               <CheckCircle2 className="w-8 h-8" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-sm font-extrabold text-[#0F172A]">Payment Successful!</h3>
-              <p className="text-xs text-slate-500 font-semibold leading-relaxed">
-                Thank you. Your receipt has been generated and dispatched.
+              <h3 className="text-sm font-extrabold text-text-primary">Payment Successful!</h3>
+              <p className="text-xs text-text-secondary font-semibold leading-relaxed">
+                Thank you. Your invoice has been marked as Paid.
               </p>
             </div>
           </div>
@@ -93,115 +106,129 @@ export default function MyInvoices() {
       )}
 
       {/* Invoice Overview Card */}
-      <div className="bg-white border border-slate-150 rounded-2xl p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+      <div className="bg-surface-primary border border-border-subtle rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div className="space-y-1.5">
-          <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-orange-50 border border-orange-100 text-[9px] font-black uppercase text-[#F97316]">
-            <ShieldCheck className="w-3.5 h-3.5" /> SECURE CHECKOUT
+          <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-[9px] font-black uppercase text-amber-600 dark:text-amber-400">
+            <ShieldCheck className="w-3.5 h-3.5" /> SECURE BILLING GATEWAY
           </div>
-          <h1 className="text-xl font-black tracking-tight text-[#0F172A]">
-            Billing & Invoices
+          <h1 className="text-xl font-black tracking-tight text-text-primary">
+            Billings & Invoices
           </h1>
-          <p className="text-xs text-slate-500 font-semibold">
-            Pay unpaid maintenance work orders and download completed receipts.
+          <p className="text-xs text-text-secondary font-semibold">
+            Review itemized charges, download paid receipts, or checkout pending invoices.
           </p>
         </div>
 
-        <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-xl shrink-0 w-full sm:w-auto text-center sm:text-right">
-          <span className="text-[10px] font-black uppercase text-[#64748B] tracking-wider block">Total Outstanding</span>
-          <span className="text-2xl font-black text-rose-600 block mt-0.5">₹{totalOutstanding}</span>
+        <div className="bg-surface-secondary border border-border-subtle p-4 rounded-xl shrink-0 w-full sm:w-auto text-center sm:text-right">
+          <span className="text-[10px] font-black uppercase text-text-secondary tracking-wider block">Total Outstanding</span>
+          <span className="text-2xl font-black text-rose-600 dark:text-rose-400 block mt-0.5">₹{totalOutstanding}</span>
         </div>
       </div>
 
       {/* Invoices List */}
       <div className="space-y-4">
         {loading ? (
-          <div className="bg-white border border-slate-150 rounded-2xl p-12 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">
+          <div className="bg-surface-primary border border-border-subtle rounded-2xl p-12 text-center text-xs font-bold text-text-secondary/50 uppercase tracking-widest">
             Loading invoices...
           </div>
-        ) : jobs.length === 0 ? (
-          <div className="bg-white border border-slate-150 rounded-2xl p-16 text-center space-y-3">
-            <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center mx-auto text-slate-400">
+        ) : invoices.length === 0 ? (
+          <div className="bg-surface-primary border border-border-subtle rounded-2xl p-16 text-center space-y-3">
+            <div className="w-14 h-14 rounded-full bg-surface-secondary flex items-center justify-center mx-auto text-text-secondary/50">
               <Receipt className="w-7 h-7" />
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-bold text-[#0F172A]">No Invoices Available</p>
-              <p className="text-xs text-slate-500 font-semibold max-w-xs mx-auto">
-                Billing invoices will appear here once your field requests are resolved.
+              <p className="text-sm font-bold text-text-primary">No Invoices Available</p>
+              <p className="text-xs text-text-secondary font-semibold max-w-xs mx-auto">
+                Billing invoices will appear here once your field requests are resolved by technicians.
               </p>
             </div>
           </div>
         ) : (
-          jobs.map(job => {
-            const isPaying = payingJobId === job._id;
+          invoices.map(invoice => {
+            const isPaying = payingInvoiceId === invoice._id;
+            const job = invoice.job || {};
+            const serviceReq = job.serviceRequest || {};
+            const tech = job.technician || {};
             
             return (
-              <div key={job._id} className="bg-white border border-slate-150 rounded-2xl p-6 shadow-2xs flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div key={invoice._id} className="bg-surface-primary border border-border-subtle rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 
                 {/* Left: Job, Date, Invoice info */}
                 <div className="space-y-3.5 max-w-xl">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
-                      INV-{job._id.slice(-6).toUpperCase()}
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-surface-secondary text-text-secondary">
+                      {invoice.invoiceNumber}
                     </span>
                     <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
-                      job.invoice.isPaid ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'
+                      invoice.status === 'paid' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
                     }`}>
-                      {job.invoice.isPaid ? 'Paid' : 'Unpaid'}
+                      {invoice.status}
                     </span>
                   </div>
 
                   <div className="space-y-1">
-                    <h3 className="text-sm font-extrabold text-[#0F172A] leading-snug">
-                      {job.title}
+                    <h3 className="text-sm font-extrabold text-text-primary leading-snug">
+                      {serviceReq.title || 'Service Request'}
                     </h3>
-                    <p className="text-xs text-slate-500 font-semibold line-clamp-1">
-                      Service performed: {job.description}
+                    <p className="text-xs text-text-secondary font-semibold line-clamp-1">
+                      Category: {serviceReq.category || 'General'}
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-4 text-[10px] font-semibold text-slate-400">
+                  <div className="flex items-center gap-4 text-[10px] font-semibold text-text-secondary/50">
                     <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" /> Scheduled: {job.scheduledDate}
+                      <Calendar className="w-3.5 h-3.5" /> Date: {new Date(invoice.issuedAt).toLocaleDateString()}
                     </span>
                     <span className="flex items-center gap-1">
-                      <Wrench className="w-3.5 h-3.5" /> Tech: {job.technician?.name || 'Rahul Sharma'}
+                      <Wrench className="w-3.5 h-3.5" /> Tech: {tech.name || 'Assigned Tech'}
                     </span>
                   </div>
                 </div>
 
-                {/* Right: Price & Pay Trigger */}
-                <div className="flex flex-row md:flex-col justify-between md:justify-center items-center md:items-end gap-4 border-t md:border-t-0 border-slate-100 pt-4 md:pt-0 w-full md:w-auto shrink-0">
+                {/* Right: Price & Pay/View Trigger */}
+                <div className="flex flex-row md:flex-col justify-between md:justify-center items-center md:items-end gap-3 border-t md:border-t-0 border-border-subtle pt-4 md:pt-0 w-full md:w-auto shrink-0">
                   <div className="text-right">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Billing Total</span>
-                    <span className="text-lg font-black text-[#0F172A] block">₹{job.invoice.amount}</span>
+                    <span className="text-[10px] font-bold text-text-secondary/50 uppercase tracking-wider block">Billing Total</span>
+                    <span className="text-lg font-black text-text-primary block">₹{invoice.totalAmount}</span>
                   </div>
 
-                  {job.invoice.isPaid ? (
+                  <div className="flex items-center gap-2">
+                    {/* View Itemized Invoice Modal Trigger */}
                     <button
                       type="button"
-                      disabled
-                      className="px-4 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-xl flex items-center gap-1 cursor-default"
+                      onClick={() => setViewInvoice(invoice)}
+                      className="px-3 py-2 bg-surface-secondary hover:bg-surface-secondary/80 text-text-secondary text-xs font-bold rounded-xl transition-all flex items-center gap-1 cursor-pointer border border-transparent hover:border-border-subtle"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" /> PAID RECEIPT
+                      <Eye className="w-3.5 h-3.5" /> View Invoice
                     </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handlePay(job._id)}
-                      disabled={isPaying}
-                      className="px-5 py-2 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-450 text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
-                    >
-                      {isPaying ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Processing...
-                        </>
-                      ) : (
-                        <>
-                          <CreditCard className="w-3.5 h-3.5" /> Pay Invoice
-                        </>
-                      )}
-                    </button>
-                  )}
+
+                    {invoice.status === 'paid' ? (
+                      <button
+                        type="button"
+                        onClick={() => setViewInvoice(invoice)}
+                        className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold rounded-xl flex items-center gap-1 cursor-pointer"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" /> PAID RECEIPT
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handlePay(invoice, serviceReq._id)}
+                        disabled={isPaying}
+                        className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+                      >
+                        {isPaying ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Processing...
+                          </>
+                        ) : (
+                          <>
+                            <CreditCard className="w-3.5 h-3.5" /> Pay Now
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
               </div>
@@ -210,6 +237,112 @@ export default function MyInvoices() {
         )}
       </div>
 
+      {/* View / Print Itemized Invoice Modal */}
+      {viewInvoice && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-surface-primary rounded-3xl max-w-xl w-full shadow-2xl border border-border-subtle overflow-hidden my-8 animate-in zoom-in-95 duration-150">
+            
+            {/* Header */}
+            <div className="px-6 py-5 bg-slate-900 text-white flex items-center justify-between">
+              <div className="space-y-0.5">
+                <div className="text-[10px] font-black uppercase text-brand-accent tracking-wider">
+                  OFFICIAL TAX INVOICE • {viewInvoice.invoiceNumber}
+                </div>
+                <h2 className="text-base font-extrabold text-white">FieldOps Service Invoice</h2>
+              </div>
+              <button
+                onClick={() => setViewInvoice(null)}
+                className="p-1.5 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Print Area */}
+            <div className="p-6 space-y-6 font-sans text-text-primary" id="printable-invoice">
+              
+              {/* Meta details */}
+              <div className="flex justify-between items-start border-b border-border-subtle pb-4 text-xs">
+                <div>
+                  <span className="text-[10px] font-black text-text-secondary/50 uppercase tracking-wider block">Customer Details</span>
+                  <span className="font-extrabold block">Your Account</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] font-black text-text-secondary/50 uppercase tracking-wider block">Payment Status</span>
+                  <span className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                    viewInvoice.status === 'paid' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' : 'bg-rose-500/20 text-rose-700 dark:text-rose-400'
+                  }`}>
+                    {viewInvoice.status}
+                  </span>
+                  <span className="text-text-secondary/50 text-[10px] block mt-1">Issued: {new Date(viewInvoice.issuedAt).toLocaleDateString()}</span>
+                </div>
+              </div>
+
+              {/* Service info */}
+              <div className="space-y-1">
+                <span className="text-[10px] font-black text-text-secondary/50 uppercase tracking-wider block">Service Rendered</span>
+                <div className="text-sm font-extrabold text-text-primary">{viewInvoice.job?.serviceRequest?.title || 'General Service'}</div>
+                <div className="text-xs text-text-secondary font-semibold">{viewInvoice.job?.serviceRequest?.category || 'Repair'}</div>
+              </div>
+
+              {/* Itemized charges table */}
+              <div className="border border-border-subtle rounded-xl overflow-hidden text-xs">
+                <div className="grid grid-cols-12 bg-surface-secondary px-4 py-2 font-bold text-text-secondary uppercase text-[9px] tracking-wider">
+                  <div className="col-span-6">Description / Item</div>
+                  <div className="col-span-3 text-right">Unit Price</div>
+                  <div className="col-span-3 text-right">Total</div>
+                </div>
+                <div className="divide-y divide-border-subtle bg-surface-primary">
+                  <div className="grid grid-cols-12 px-4 py-2.5 font-semibold">
+                    <div className="col-span-6 text-text-primary">Base Technician Visit & Inspection Fee</div>
+                    <div className="col-span-3 text-right text-text-secondary">₹{viewInvoice.serviceCharge || 500}</div>
+                    <div className="col-span-3 text-right text-text-primary">₹{viewInvoice.serviceCharge || 500}</div>
+                  </div>
+
+                  {(viewInvoice.parts || []).map((part, idx) => (
+                    <div key={idx} className="grid grid-cols-12 px-4 py-2.5 font-semibold">
+                      <div className="col-span-6 text-text-primary">{part.name} (x{part.quantity || 1})</div>
+                      <div className="col-span-3 text-right text-text-secondary">₹{part.price}</div>
+                      <div className="col-span-3 text-right text-text-primary">₹{part.price * (part.quantity || 1)}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="bg-surface-secondary p-4 border-t border-border-subtle space-y-1 text-xs text-right">
+                  <div className="text-text-secondary">Service Charge: ₹{viewInvoice.serviceCharge || 0}</div>
+                  <div className="text-text-secondary">Parts Total: ₹{viewInvoice.partsTotal || 0}</div>
+                  <div className="text-text-secondary">Taxes (GST 0%): ₹{viewInvoice.tax || 0}</div>
+                  <div className="text-base font-black text-text-primary pt-1 border-t border-border-subtle">
+                    Grand Total: ₹{viewInvoice.totalAmount || 0}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 py-4 bg-surface-secondary border-t border-border-subtle flex justify-between items-center">
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="px-4 py-2 bg-surface-primary border border-border-subtle hover:bg-surface-secondary text-text-secondary hover:text-text-primary text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+              >
+                <Printer className="w-3.5 h-3.5" /> Print / Download PDF
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewInvoice(null)}
+                className="px-5 py-2 bg-slate-900 text-white hover:bg-slate-800 text-xs font-bold rounded-xl shadow-sm cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      </div>
     </div>
   );
 }

@@ -28,14 +28,15 @@ export default function Workflow() {
       num: '03',
       title: 'SMART ASSIGNMENT',
       role: 'FIELDOPS AI',
-      desc: 'FieldOps recommends the right technician.',
-      icon: Sparkles
+      desc: 'FieldOps recommends the right technician based on skills and location.',
+      icon: Sparkles,
+      highlight: true
     },
     {
       num: '04',
       title: 'FIELD SERVICE',
       role: 'TECHNICIAN',
-      desc: 'Technician accepts the job and performs the service.',
+      desc: 'Technician accepts the job and performs the service on-site.',
       icon: Wrench
     },
     {
@@ -55,20 +56,20 @@ export default function Workflow() {
   ];
 
   return (
-    <section id="workflow" className="py-20 md:py-28 bg-[#F4F6F8] border-b border-[#E2E8F0]">
+    <section id="workflow" className="py-20 md:py-28 bg-page-bg border-b border-border-subtle">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
         
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto space-y-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#0284C7]">
+          <span className="text-xs font-bold uppercase tracking-wider text-brand-secondary">
             HOW FIELDOPS WORKS
           </span>
 
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0F172A] tracking-tight">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-text-primary tracking-tight">
             From service request to resolution.
           </h2>
 
-          <p className="text-[#64748B] text-base sm:text-lg leading-relaxed">
+          <p className="text-text-secondary text-base sm:text-lg leading-relaxed">
             FieldOps connects customers, company teams, and technicians through one seamless workflow — keeping every service request visible from start to finish.
           </p>
         </div>
@@ -76,41 +77,41 @@ export default function Workflow() {
         {/* Desktop Connected Workflow Timeline */}
         <div className="relative pt-4">
           
-          {/* Horizontal Connecting Line (Desktop) */}
-          <div className="hidden lg:block absolute top-[52px] left-[60px] right-[60px] h-[2px] bg-[#E2E8F0] -z-0" />
+          {/* Horizontal Glowing Connecting Line (Desktop) */}
+          <div className="hidden lg:block absolute top-[52px] left-[60px] right-[60px] h-[2px] bg-gradient-to-r from-transparent via-brand-secondary/50 to-transparent -z-0" style={{ boxShadow: '0 0 12px rgba(56, 189, 248, 0.4)' }} />
 
-          {/* Desktop Grid Layout (Uniform Clean Styling) */}
+          {/* Desktop Grid Layout */}
           <div className="hidden lg:grid grid-cols-6 gap-6 relative z-10">
             {stages.map((stage, idx) => {
               const IconComp = stage.icon;
               return (
                 <div 
                   key={idx} 
-                  className="bg-white border border-[#E2E8F0] rounded-xl p-5 space-y-3 transition-all duration-300 group cursor-pointer hover:border-[#0284C7] hover:-translate-y-2 hover:shadow-xl hover:shadow-sky-500/10"
+                  className={`bg-surface-primary border rounded-xl p-5 space-y-3 transition-all duration-300 group cursor-pointer hover:-translate-y-2 hover:shadow-xl ${stage.highlight ? 'border-brand-accent shadow-brand-accent/5' : 'border-border-subtle hover:border-brand-secondary hover:shadow-brand-secondary/5'}`}
                 >
                   {/* Number & Icon Container */}
                   <div className="flex items-center justify-between pb-1">
-                    <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-slate-100 text-[#334155] transition-colors group-hover:bg-[#0284C7] group-hover:text-white">
+                    <span className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full transition-colors ${stage.highlight ? 'bg-brand-accent text-white' : 'bg-surface-secondary text-slate-custom group-hover:bg-brand-secondary group-hover:text-white'}`}>
                       {stage.num}
                     </span>
 
-                    <div className="p-2 rounded-lg bg-slate-50 text-[#0284C7] transition-transform duration-300 group-hover:scale-110">
+                    <div className={`p-2 rounded-lg transition-transform duration-300 group-hover:scale-110 ${stage.highlight ? 'bg-brand-accent/10 text-brand-accent' : 'bg-surface-secondary text-brand-secondary'}`}>
                       <IconComp className="w-4 h-4" />
                     </div>
                   </div>
 
                   {/* Title & Role */}
                   <div className="space-y-1">
-                    <div className="text-xs font-extrabold tracking-tight text-[#0F172A] group-hover:text-[#0284C7] transition-colors">
+                    <div className={`text-xs font-extrabold tracking-tight transition-colors ${stage.highlight ? 'text-brand-accent' : 'text-text-primary group-hover:text-brand-secondary'}`}>
                       {stage.title}
                     </div>
-                    <div className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">
+                    <div className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">
                       {stage.role}
                     </div>
                   </div>
 
                   {/* Description */}
-                  <p className="text-xs text-[#64748B] leading-snug pt-1 group-hover:text-[#334155] transition-colors">
+                  <p className="text-xs text-text-secondary leading-snug pt-1 group-hover:text-text-primary transition-colors">
                     {stage.desc}
                   </p>
                 </div>
@@ -119,36 +120,36 @@ export default function Workflow() {
           </div>
 
           {/* Mobile Vertical Timeline */}
-          <div className="lg:hidden space-y-4 relative pl-6 border-l-2 border-[#E2E8F0] ml-3">
+          <div className="lg:hidden space-y-4 relative pl-6 border-l-2 border-border-subtle ml-3">
             {stages.map((stage, idx) => {
               const IconComp = stage.icon;
               return (
                 <div 
                   key={idx}
-                  className="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-2 relative transition-all duration-300 cursor-pointer hover:border-[#0284C7] hover:shadow-md"
+                  className={`bg-surface-primary border rounded-xl p-4 space-y-2 relative transition-all duration-300 cursor-pointer hover:shadow-md ${stage.highlight ? 'border-brand-accent' : 'border-border-subtle hover:border-brand-secondary'}`}
                 >
                   {/* Timeline Dot Indicator */}
-                  <div className="absolute -left-[33px] top-4 w-4 h-4 rounded-full border-2 border-[#0284C7] bg-white flex items-center justify-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#0284C7]" />
+                  <div className={`absolute -left-[33px] top-4 w-4 h-4 rounded-full border-2 bg-surface-primary flex items-center justify-center ${stage.highlight ? 'border-brand-accent' : 'border-brand-secondary'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${stage.highlight ? 'bg-brand-accent' : 'bg-brand-secondary'}`} />
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-extrabold px-2 py-0.5 rounded bg-slate-100 text-[#334155]">
+                    <span className={`text-xs font-extrabold px-2 py-0.5 rounded ${stage.highlight ? 'bg-brand-accent/10 text-brand-accent' : 'bg-surface-secondary text-slate-custom'}`}>
                       STAGE {stage.num}
                     </span>
-                    <IconComp className="w-4 h-4 text-[#0284C7]" />
+                    <IconComp className={`w-4 h-4 ${stage.highlight ? 'text-brand-accent' : 'text-brand-secondary'}`} />
                   </div>
 
                   <div>
-                    <div className="text-xs font-extrabold text-[#0F172A]">
+                    <div className="text-xs font-extrabold text-text-primary">
                       {stage.title}
                     </div>
-                    <div className="text-[10px] font-bold text-[#64748B] uppercase">
+                    <div className="text-[10px] font-bold text-text-secondary uppercase">
                       {stage.role}
                     </div>
                   </div>
 
-                  <p className="text-xs text-[#64748B]">
+                  <p className="text-xs text-text-secondary">
                     {stage.desc}
                   </p>
                 </div>

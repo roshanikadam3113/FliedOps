@@ -2,10 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Building2, 
-  Wrench, 
-  User, 
-  ArrowRight, 
   Lock, 
   Mail, 
   Activity,
@@ -15,19 +11,16 @@ import {
   MapPin,
   Eye,
   EyeOff,
-  Sparkles,
-  CheckCircle2
+  Quote
 } from 'lucide-react';
 
 export default function Register() {
-  const [role, setRole] = useState('customer');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [phone, setPhone] = useState('');
-  const [location, setLocation] = useState('Kolhapur');
-  const [specialty, setSpecialty] = useState('AC & HVAC');
+  const [location, setLocation] = useState('');
   
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -42,7 +35,6 @@ export default function Register() {
     else navigate('/customer/dashboard');
   };
 
-  // Redirect if already authenticated
   React.useEffect(() => {
     if (isAuthenticated && user) {
       handleRedirect(user.role);
@@ -58,18 +50,8 @@ export default function Register() {
       return;
     }
 
-    if (password.length < 8) {
-      setLocalError('Password must be at least 8 characters long');
-      return;
-    }
-
-    const hasUppercase = /[A-Z]/.test(password);
-    const hasLowercase = /[a-z]/.test(password);
-    const hasNumber = /[0-9]/.test(password);
-    const hasSpecialChar = /[^A-Za-z0-9]/.test(password);
-
-    if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecialChar) {
-      setLocalError('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character');
+    if (password.length < 6) {
+      setLocalError('Password must be at least 6 characters long');
       return;
     }
 
@@ -83,9 +65,8 @@ export default function Register() {
         name,
         email,
         password,
-        role,
+        role: 'customer',
         phone,
-        specialty: role === 'technician' ? specialty : undefined,
         location
       });
 
@@ -98,264 +79,221 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-[#24609F] font-sans antialiased">
+    <div className="min-h-screen flex bg-page-bg font-sans antialiased text-text-primary">
       
-      {/* Background Image Asset - Shifted left to showcase the technician working */}
-      <div 
-        className="absolute inset-0 bg-cover bg-[20%_center] filter blur-[2px] scale-105 opacity-80 pointer-events-none z-0" 
-        style={{ backgroundImage: "url('/fieldops_tech_job.png')" }} 
-      />
-
-      {/* Dark overlay for contrast */}
-      <div className="absolute inset-0 bg-slate-950/40 z-10 pointer-events-none" />
-
-      {/* Centered Registration Panel */}
-      <div className="relative z-20 w-full max-w-md flex flex-col justify-center py-4">
+      {/* LEFT PANEL: Vibrant Image (Hidden on mobile) */}
+      <div className="hidden lg:flex lg:w-[45%] relative flex-col justify-between p-14 overflow-hidden shadow-2xl z-10 rounded-r-[2.5rem]">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-[20%_center] z-0 scale-105 transition-transform duration-10000 hover:scale-110" 
+          style={{ backgroundImage: "url('/fieldops_tech_job.png')" }} 
+        />
+        {/* Gradient Overlays */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900/80 to-brand-accent/30 z-10" />
         
-        {/* Branding header */}
-        <div className="w-full text-center mb-4">
-          <Link to="/" className="inline-flex items-center gap-2.5 justify-center mb-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#F97316] to-[#EA580C] flex items-center justify-center text-white font-bold shadow-md">
-              <Activity className="w-4.5 h-4.5 stroke-[2.5]" />
-            </div>
-            <span className="text-xl font-black tracking-widest text-white drop-shadow-md">
-              FIELDOPS
-            </span>
-          </Link>
+        {/* Top Branding */}
+        <div className="relative z-20 flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-accent to-orange-400 flex items-center justify-center text-white font-bold shadow-lg shadow-brand-accent/40">
+            <Activity className="w-6 h-6 stroke-[3]" />
+          </div>
+          <span className="text-3xl font-black tracking-widest text-white drop-shadow-md">
+            FIELDOPS
+          </span>
         </div>
 
-        {/* Main Card */}
-        <div className="w-full bg-white/95 backdrop-blur-md border border-white/20 p-6 sm:p-10 rounded-3xl shadow-2xl space-y-5">
-          
-          <div className="space-y-1">
-            <h2 className="text-2xl font-black text-[#0F172A] tracking-tight">
-              Create your account
+        {/* Bottom Copy / Testimonial Style */}
+        <div className="relative z-20 max-w-lg mb-4">
+          <Quote className="w-10 h-10 text-brand-accent/80 mb-6" />
+          <h2 className="text-3xl font-bold text-white mb-8 leading-snug tracking-tight">
+            "FieldOps has completely transformed how we request and track our facility services. It's fast, transparent, and incredibly reliable."
+          </h2>
+        </div>
+      </div>
+
+      {/* RIGHT PANEL: Registration Form */}
+      <div className="w-full lg:w-[55%] flex flex-col items-center justify-center p-4 sm:p-6 bg-page-bg relative overflow-y-auto">
+        
+        {/* Mobile Header Branding (Visible only on mobile) */}
+        <Link to="/" className="lg:hidden flex items-center gap-3 justify-center mb-10 mt-4">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-accent to-orange-400 flex items-center justify-center text-white font-bold shadow-lg shadow-brand-accent/30">
+            <Activity className="w-5 h-5 stroke-[2.5]" />
+          </div>
+          <span className="text-2xl font-black tracking-widest text-text-primary">
+            FIELDOPS
+          </span>
+        </Link>
+
+        {/* Form Container */}
+        <div className="w-full max-w-[420px] my-auto animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out py-4">
+          <div className="bg-surface-primary p-5 sm:p-6 rounded-[2rem] shadow-2xl shadow-brand-accent/5 border border-border-subtle relative">
+            <div className="space-y-1 mb-4 text-center">
+              <h2 className="text-3xl font-extrabold tracking-tight text-text-primary">
+              Join FieldOps
             </h2>
-            <p className="text-xs text-[#64748B] font-semibold">
-              Already registered?{' '}
-              <Link to="/login" className="font-extrabold text-[#F97316] hover:text-[#EA580C] hover:underline transition-colors">
-                Sign in to existing account
-              </Link>
+            <p className="text-base text-text-secondary font-medium">
+              Create a Client Account to start requesting services.
             </p>
           </div>
 
-          {/* Account Type Selector (Customer, Tech, Admin) */}
-          <div className="space-y-2">
-            <label className="text-[9px] font-black uppercase tracking-wider text-[#64748B] block">
-              CHOOSE ACCOUNT TYPE
-            </label>
-            <div className="grid grid-cols-3 gap-1 bg-[#F4F6F8] p-1 rounded-xl border border-slate-200 text-[10px] font-extrabold">
-              <button
-                type="button"
-                onClick={() => setRole('customer')}
-                className={`py-2 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
-                  role === 'customer'
-                    ? 'bg-[#0F172A] text-white shadow-sm scale-[1.01]'
-                    : 'text-[#475569] hover:text-[#0F172A] hover:bg-white/50'
-                }`}
-              >
-                <User className="w-3.5 h-3.5" /> CLIENT
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setRole('technician')}
-                className={`py-2 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
-                  role === 'technician'
-                    ? 'bg-[#0F172A] text-white shadow-sm scale-[1.01]'
-                    : 'text-[#475569] hover:text-[#0F172A] hover:bg-white/50'
-                }`}
-              >
-                <Wrench className="w-3.5 h-3.5" /> TECH
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setRole('admin')}
-                className={`py-2 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
-                  role === 'admin'
-                    ? 'bg-[#0F172A] text-white shadow-sm scale-[1.01]'
-                    : 'text-[#475569] hover:text-[#0F172A] hover:bg-white/50'
-                }`}
-              >
-                <Building2 className="w-3.5 h-3.5" /> ADMIN
-              </button>
-            </div>
-          </div>
-
-          {/* Local Error alert */}
+          {/* Error Alert */}
           {localError && (
-            <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-2xs">
-              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <div className="mb-6 bg-brand-error/10 border border-brand-error/20 text-brand-error p-4 rounded-2xl text-sm font-semibold flex items-center gap-3 animate-in fade-in zoom-in-95 duration-300">
+              <AlertCircle className="w-5 h-5 shrink-0" />
               <span className="leading-snug">{localError}</span>
             </div>
           )}
 
           {/* Registration Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-xs font-bold text-[#0F172A] block mb-1">
-              Full Name
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                <UserCheck className="w-4 h-4" />
-              </div>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Amit Sharma"
-                className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316] bg-[#F8FAFC] focus:bg-white transition-all duration-250"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-[#0F172A] block mb-1">
-              Email Address
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                <Mail className="w-4 h-4" />
-              </div>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
-                className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316] bg-[#F8FAFC] focus:bg-white transition-all duration-250"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-bold text-[#0F172A] block mb-1">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <Lock className="w-4 h-4" />
-                </div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-9 pr-9 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316] bg-[#F8FAFC] focus:bg-white transition-all duration-250"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-[#0F172A] block mb-1">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <Lock className="w-4 h-4" />
-                </div>
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className={`w-full pl-9 pr-9 py-2 border rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 bg-[#F8FAFC] focus:bg-white transition-all duration-250 ${
-                    confirmPassword 
-                      ? password === confirmPassword 
-                        ? 'border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500 focus:bg-white' 
-                        : 'border-rose-300 focus:border-rose-500 focus:ring-rose-500 focus:bg-white'
-                      : 'border-slate-200 focus:border-[#F97316] focus:ring-[#F97316]'
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-bold text-[#0F172A] block mb-1">
-                Phone Number
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <Phone className="w-4 h-4" />
-                </div>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="e.g. +91 98765 43210"
-                  className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316] bg-[#F8FAFC] focus:bg-white transition-all duration-250"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-[#0F172A] block mb-1">
-                City / Location
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <MapPin className="w-4 h-4" />
+          <form onSubmit={handleSubmit} className="space-y-3" autoComplete="off">
+            <div className="space-y-1">
+              <label className="text-sm font-bold text-text-primary pl-1">Full Name</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-text-secondary group-focus-within:text-brand-accent transition-colors">
+                  <UserCheck className="w-5 h-5" />
                 </div>
                 <input
                   type="text"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g. Pune"
-                  className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316] bg-[#F8FAFC] focus:bg-white transition-all duration-250"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Amit Sharma"
+                  autoComplete="name"
+                  className="w-full pl-11 pr-4 py-2.5 border border-transparent rounded-xl text-sm font-semibold bg-surface-secondary focus:bg-surface-primary focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/20 placeholder:text-text-secondary/60 text-text-primary transition-all duration-300 shadow-sm"
                 />
               </div>
             </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-bold text-text-primary pl-1">Email Address</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-text-secondary group-focus-within:text-brand-accent transition-colors">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  autoComplete="email"
+                  className="w-full pl-11 pr-4 py-2.5 border border-transparent rounded-xl text-sm font-semibold bg-surface-secondary focus:bg-surface-primary focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/20 placeholder:text-text-secondary/60 text-text-primary transition-all duration-300 shadow-sm"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-sm font-bold text-text-primary pl-1">Password</label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-text-secondary group-focus-within:text-brand-accent transition-colors">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete="new-password"
+                    className="w-full pl-11 pr-11 py-2.5 border border-transparent rounded-xl text-sm font-semibold bg-surface-secondary focus:bg-surface-primary focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/20 placeholder:text-text-secondary/60 text-text-primary transition-all duration-300 shadow-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-text-secondary hover:text-brand-accent transition-colors cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-bold text-text-primary pl-1">Confirm Password</label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-text-secondary group-focus-within:text-brand-accent transition-colors">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete="new-password"
+                    className={`w-full pl-11 pr-11 py-2.5 border rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 placeholder:text-text-secondary/60 text-text-primary transition-all duration-300 shadow-sm ${
+                      confirmPassword 
+                        ? password === confirmPassword 
+                          ? 'border-brand-success/50 bg-surface-primary focus:border-brand-success focus:ring-brand-success/20' 
+                          : 'border-brand-error/50 bg-surface-primary focus:border-brand-error focus:ring-brand-error/20'
+                        : 'border-transparent bg-surface-secondary focus:bg-surface-primary focus:border-brand-accent focus:ring-brand-accent/20'
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-text-secondary hover:text-brand-accent transition-colors cursor-pointer"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-sm font-bold text-text-primary pl-1">Phone</label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-text-secondary group-focus-within:text-brand-accent transition-colors">
+                    <Phone className="w-5 h-5" />
+                  </div>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+91 98765..."
+                    autoComplete="tel"
+                    className="w-full pl-11 pr-4 py-2.5 border border-transparent rounded-xl text-sm font-semibold bg-surface-secondary focus:bg-surface-primary focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/20 placeholder:text-text-secondary/60 text-text-primary transition-all duration-300 shadow-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-bold text-text-primary pl-1">Location</label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-text-secondary group-focus-within:text-brand-accent transition-colors">
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                  <input
+                    type="text"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="e.g. Pune"
+                    autoComplete="address-level2"
+                    className="w-full pl-11 pr-4 py-2.5 border border-transparent rounded-xl text-sm font-semibold bg-surface-secondary focus:bg-surface-primary focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/20 placeholder:text-text-secondary/60 text-text-primary transition-all duration-300 shadow-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3 rounded-xl text-sm font-extrabold tracking-wide uppercase bg-gradient-to-r from-brand-accent to-orange-400 hover:from-orange-500 hover:to-orange-400 text-white shadow-lg shadow-brand-accent/20 transform hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+              >
+                {isLoading ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT'}
+              </button>
+            </div>
+          </form>
+
+          {/* Footer link */}
+            <div className="text-center pt-5 pb-0">
+              <p className="text-sm text-text-secondary font-medium">
+                Already registered?{' '}
+                <Link to="/login" className="font-bold text-brand-accent hover:text-orange-500 transition-colors underline-offset-4 hover:underline">
+                  Sign in here
+                </Link>
+              </p>
+            </div>
           </div>
 
-          {role === 'technician' && (
-            <div className="animate-in fade-in slide-in-from-top-1 duration-200">
-              <label className="text-xs font-bold text-[#0F172A] block mb-1">
-                Service Specialty
-              </label>
-              <select
-                value={specialty}
-                onChange={(e) => setSpecialty(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316] bg-[#F8FAFC] focus:bg-white transition-all duration-250"
-              >
-                <option value="AC & HVAC">AC & HVAC</option>
-                <option value="Electrical">Electrical</option>
-                <option value="Plumbing">Plumbing</option>
-                <option value="RO Service">RO Service</option>
-                <option value="CCTV Installation">CCTV Installation</option>
-              </select>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-2.5 rounded-xl text-xs font-bold uppercase tracking-[0.08em] bg-[#F97316] hover:bg-[#EA580C] text-white shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
-          >
-            {isLoading ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT'}
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </form>
-
-      </div>
-
+        </div>
       </div>
 
     </div>

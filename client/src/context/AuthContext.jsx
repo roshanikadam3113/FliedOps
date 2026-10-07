@@ -82,7 +82,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Login User Method
-  const login = async (email, password) => {
+  const login = async (email, password, expectedRole) => {
     setIsLoading(true);
     setAuthError('');
     try {
@@ -92,6 +92,9 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (data.success) {
+        if (expectedRole && data.user.role !== expectedRole) {
+          throw new Error(`Invalid role. This account is registered as a ${data.user.role.toUpperCase()}.`);
+        }
         setAuthData(data.user, data.token);
         return data.user;
       }
@@ -103,20 +106,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Demo 1-Click Login for Fast Testing
-  const demoLogin = (role) => {
-    const demoUsers = {
-      admin: { _id: 'demo_admin_1', name: 'FieldOps Admin', email: 'admin@fieldops.com', role: 'admin', location: 'Kolhapur HQ' },
-      technician: { _id: 'demo_tech_1', name: 'Rahul Sharma', email: 'rahul@fieldops.com', role: 'technician', specialty: 'AC & HVAC', rating: 4.9 },
-      customer: { _id: 'demo_cust_1', name: 'Roshani Kadam', email: 'roshani@gmail.com', role: 'customer', location: 'Sector 62, Kolhapur' }
-    };
-
-    const targetUser = demoUsers[role] || demoUsers.customer;
-    const fakeToken = `demo_jwt_token_${role}_${Date.now()}`;
-    setAuthData(targetUser, fakeToken);
-    return targetUser;
-  };
-
+  // Demo Login Removed
   // Logout Method
   const logout = () => {
     setAuthData(null, '');
@@ -134,7 +124,6 @@ export const AuthProvider = ({ children }) => {
         setAuthError,
         register,
         login,
-        demoLogin,
         logout
       }}
     >

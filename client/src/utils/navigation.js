@@ -26,8 +26,7 @@ export const ADMIN_NAVIGATION = [
   {
     section: 'OVERVIEW',
     items: [
-      { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-      { label: 'Live Operations', path: '/admin/live-operations', icon: Activity }
+      { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard }
     ]
   },
   {
@@ -35,8 +34,7 @@ export const ADMIN_NAVIGATION = [
     items: [
       { label: 'Service Requests', path: '/admin/requests', icon: FileText },
       { label: 'Jobs', path: '/admin/jobs', icon: Briefcase },
-      { label: 'Dispatch', path: '/admin/dispatch', icon: Navigation },
-      { label: 'Smart Assignment', path: '/admin/smart-assignment', icon: UserCheck }
+      { label: 'Dispatch Center', path: '/admin/dispatch', icon: Navigation }
     ]
   },
   {
@@ -47,25 +45,11 @@ export const ADMIN_NAVIGATION = [
     ]
   },
   {
-    section: 'BUSINESS',
+    section: 'BUSINESS & INSIGHTS',
     items: [
-      { label: 'Inventory', path: '/admin/inventory', icon: Package },
       { label: 'Invoices', path: '/admin/invoices', icon: Receipt },
-      { label: 'Payments', path: '/admin/payments', icon: CreditCard }
-    ]
-  },
-  {
-    section: 'INSIGHTS',
-    items: [
-      { label: 'Reviews', path: '/admin/reviews', icon: Star },
+      { label: 'Inventory', path: '/admin/inventory', icon: Package },
       { label: 'Analytics', path: '/admin/analytics', icon: BarChart3 }
-    ]
-  },
-  {
-    section: 'SYSTEM',
-    items: [
-      { label: 'Notifications', path: '/admin/notifications', icon: Bell },
-      { label: 'Settings', path: '/admin/settings', icon: Settings }
     ]
   }
 ];
@@ -104,5 +88,13 @@ export const CUSTOMER_NAVIGATION = [
       { label: 'Invoices', path: '/customer/invoices', icon: Receipt },
       { label: 'Reviews', path: '/customer/reviews', icon: Star }
     ]
+  },
+  {
+    section: 'ACCOUNT',
+    items: [
+      { label: 'My Profile', path: '/customer/profile', icon: User },
+      { label: 'Help & Support', path: '/customer/support', icon: UserCheck }
+    ]
   }
 ];
+

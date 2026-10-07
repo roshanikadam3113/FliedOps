@@ -19,7 +19,7 @@ export default function AppLayout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   return (
-    <div className="h-screen w-screen bg-[#F4F6F8] text-[#0F172A] flex overflow-hidden font-sans antialiased">
+    <div className="h-screen w-screen bg-page-bg text-text-primary flex overflow-hidden font-sans antialiased">
       
       {/* Desktop Fixed Sidebar */}
       <div className="hidden lg:block h-full shrink-0">
@@ -33,11 +33,11 @@ export default function AppLayout() {
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" 
             onClick={() => setMobileSidebarOpen(false)}
           />
-          <div className="relative bg-white w-72 h-full z-10 shadow-2xl flex flex-col">
-            <div className="p-3 flex justify-end border-b border-slate-100">
+          <div className="relative bg-surface-primary w-72 h-full z-10 shadow-2xl flex flex-col">
+            <div className="p-3 flex justify-end border-b border-border-subtle">
               <button
                 onClick={() => setMobileSidebarOpen(false)}
-                className="p-1 rounded-lg text-slate-500 hover:bg-slate-100"
+                className="p-1 rounded-lg text-text-secondary hover:bg-surface-secondary"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -59,7 +59,7 @@ export default function AppLayout() {
         />
 
         {/* Main Operational Workspace Page Outlet */}
-        <main className="flex-grow overflow-y-auto p-4 sm:p-6 bg-[#F4F6F8]">
+        <main className="flex-grow overflow-y-auto p-4 sm:p-6 bg-page-bg">
           <Outlet context={{ userRole }} />
         </main>
 

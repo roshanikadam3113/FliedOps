@@ -18,6 +18,12 @@ export const apiRequest = async (endpoint, options = {}) => {
     const data = await response.json();
 
     if (!response.ok) {
+      if (response.status === 401) {
+        // Handle unauthorized by clearing auth state and redirecting to login
+        localStorage.removeItem('fieldops_token');
+        localStorage.removeItem('fieldops_user');
+        window.location.href = '/login';
+      }
       throw new Error(data.message || 'API request failed');
     }
 

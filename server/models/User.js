@@ -45,6 +45,24 @@ const userSchema = new mongoose.Schema(
     rating: {
       type: Number,
       default: 4.8
+    },
+    totalRatings: {
+      type: Number,
+      default: 1
+    },
+    isActive: {
+      type: Boolean,
+      default: true
+    },
+    availabilityStatus: {
+      type: String,
+      enum: ['AVAILABLE', 'BUSY', 'OFFLINE'],
+      default: 'AVAILABLE'
+    },
+    notificationPreferences: {
+      inApp: { type: Boolean, default: true },
+      email: { type: Boolean, default: true },
+      sms: { type: Boolean, default: false }
     }
   },
   {

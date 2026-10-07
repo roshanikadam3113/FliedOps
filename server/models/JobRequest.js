@@ -21,10 +21,37 @@ const jobRequestSchema = new mongoose.Schema(
       enum: ['AC & HVAC', 'Electrical', 'Plumbing', 'RO Service', 'CCTV Installation', 'General Maintenance'],
       default: 'General Maintenance'
     },
+    serviceType: {
+      type: String,
+      default: 'Standard Repair'
+    },
+    contactPhone: {
+      type: String,
+      default: ''
+    },
+    image: {
+      type: String,
+      default: ''
+    },
     status: {
       type: String,
-      enum: ['pending', 'assigned', 'in-progress', 'completed', 'cancelled'],
+      enum: ['pending', 'assigned', 'on-the-way', 'arrived', 'in-progress', 'completed', 'cancelled'],
       default: 'pending'
+    },
+    statusHistory: [
+      {
+        status: { type: String, required: true },
+        note: { type: String, default: '' },
+        timestamp: { type: Date, default: Date.now }
+      }
+    ],
+    cancelReason: {
+      type: String,
+      default: ''
+    },
+    rescheduledDate: {
+      type: String,
+      default: ''
     },
     urgency: {
       type: String,
@@ -50,6 +77,18 @@ const jobRequestSchema = new mongoose.Schema(
     },
     invoice: {
       amount: {
+        type: Number,
+        default: 0
+      },
+      serviceCharge: {
+        type: Number,
+        default: 500
+      },
+      partsTotal: {
+        type: Number,
+        default: 0
+      },
+      tax: {
         type: Number,
         default: 0
       },
@@ -89,3 +128,4 @@ const jobRequestSchema = new mongoose.Schema(
 );
 
 module.exports = mongoose.model('JobRequest', jobRequestSchema);
+

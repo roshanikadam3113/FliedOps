@@ -2,17 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getJobs } from '../../services/jobService';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  LayoutDashboard, 
-  PlusCircle, 
-  FileText, 
-  MapPin, 
-  Clock, 
-  Receipt, 
-  Star, 
-  Wrench, 
-  CheckCircle2, 
-  AlertCircle, 
+import {
+  LayoutDashboard,
+  PlusCircle,
+  FileText,
+  MapPin,
+  Clock,
+  Receipt,
+  Star,
+  Wrench,
+  CheckCircle2,
+  AlertCircle,
   ArrowRight,
   ShieldCheck,
   UserCheck
@@ -44,158 +44,149 @@ export default function CustomerDashboard() {
   const pendingReviews = completedJobs.filter(j => !j.review);
 
   return (
-    <div className="space-y-8 font-sans antialiased text-[#0F172A]">
-      
-      {/* Header Profile Greeting */}
-      <div className="bg-gradient-to-r from-[#0F172A] to-slate-900 text-white rounded-3xl p-6 sm:p-10 shadow-xl relative overflow-hidden">
-        <div className="absolute top-[-40%] right-[-20%] w-[60%] h-[150%] rounded-full bg-[#F97316]/10 blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-[-40%] left-[-20%] w-[60%] h-[150%] rounded-full bg-sky-500/10 blur-[120px] pointer-events-none" />
-        
-        <div className="relative z-10 space-y-3">
-          <div className="space-y-1.5">
-            <h1 className="text-3xl font-extrabold tracking-tight">
-              Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F97316] to-orange-400">{user?.name || 'Customer'}</span>
-            </h1>
-            <p className="text-sm text-slate-300 max-w-lg leading-relaxed font-medium">
-              Manage your residential maintenance service requests, track technicians in real-time, and view paid invoices.
-            </p>
-          </div>
+    <div className="space-y-8 pb-12 font-sans antialiased text-text-primary bg-page-bg min-h-screen">
+
+      {/* Top Banner - Standard Box Design */}
+      <div className="bg-surface-primary text-text-primary rounded-xl p-6 sm:p-8 shadow-sm border border-border-subtle flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="space-y-2">
+          <h1 className="text-2xl sm:text-3xl font-black text-text-primary tracking-tight">
+            Welcome back, {user?.name || 'Customer'}
+          </h1>
+          <p className="text-sm text-text-secondary font-medium">
+            Manage your service requests, track technicians, and view invoices
+          </p>
         </div>
+        
+        {/* Action Button */}
+        <Link
+          to="/customer/create-request"
+          className="inline-flex items-center gap-2 px-5 py-3 bg-brand-accent hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer whitespace-nowrap shrink-0"
+        >
+          <PlusCircle className="w-4.5 h-4.5" /> Book New Service
+        </Link>
       </div>
 
-      {/* Metrics Strips */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm flex items-center gap-4.5">
-          <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-[#F97316] shrink-0">
-            <Wrench className="w-6 h-6" />
+      {/* Metrics Row - Industrial Standard */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Active Jobs', value: activeJobs.length, icon: Wrench, color: 'text-brand-accent' },
+          { label: 'Completed', value: completedJobs.length, icon: CheckCircle2, color: 'text-emerald-600 dark:text-emerald-400' },
+          { label: 'Unpaid Invoices', value: unpaidInvoices.length, icon: Receipt, color: 'text-rose-500' },
+          { label: 'Pending Reviews', value: pendingReviews.length, icon: Star, color: 'text-amber-500' },
+        ].map((metric, idx) => (
+          <div key={idx} className="bg-surface-primary border border-border-subtle p-5 rounded-xl shadow-sm flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-lg bg-surface-secondary border border-border-subtle flex items-center justify-center ${metric.color} shrink-0`}>
+              <metric.icon className="w-6 h-6 stroke-[2]" />
+            </div>
+            <div>
+              <span className="text-[10px] font-black uppercase text-text-secondary tracking-widest">{metric.label}</span>
+              <div className="text-2xl font-black text-text-primary">{metric.value}</div>
+            </div>
           </div>
-          <div>
-            <span className="text-xs font-black uppercase text-[#64748B] tracking-wider">Active Jobs</span>
-            <div className="text-2xl font-black text-[#0F172A] mt-0.5">{activeJobs.length}</div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm flex items-center gap-4.5">
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
-            <CheckCircle2 className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-xs font-black uppercase text-[#64748B] tracking-wider">Completed</span>
-            <div className="text-2xl font-black text-[#0F172A] mt-0.5">{completedJobs.length}</div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm flex items-center gap-4.5">
-          <div className="w-12 h-12 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600 shrink-0">
-            <Receipt className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-xs font-black uppercase text-[#64748B] tracking-wider">Unpaid Invoices</span>
-            <div className="text-2xl font-black text-[#0F172A] mt-0.5">{unpaidInvoices.length}</div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm flex items-center gap-4.5">
-          <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
-            <Star className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-xs font-black uppercase text-[#64748B] tracking-wider">Pending Reviews</span>
-            <div className="text-2xl font-black text-[#0F172A] mt-0.5">{pendingReviews.length}</div>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Main Grid: Quick Actions & Active Requests */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Left Side: Active Requests & Notices */}
+
+        {/* Left Side: Active Requests */}
         <div className="lg:col-span-8 space-y-6">
-          <div className="bg-white border border-slate-150 rounded-2xl shadow-xs overflow-hidden">
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-lg font-black tracking-tight text-[#0F172A] flex items-center gap-2">
-                <FileText className="w-5 h-5 text-[#F97316]" /> Active Service Requests
+          <div className="bg-surface-primary border border-border-subtle rounded-xl shadow-sm overflow-hidden flex flex-col h-full">
+            <div className="px-6 py-4 border-b border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface-secondary/50">
+              <h2 className="text-lg font-black tracking-tight text-text-primary flex items-center gap-2">
+                <FileText className="w-4 h-4 text-text-secondary" />
+                Active Service Requests
               </h2>
-              <span className="text-xs font-bold px-2.5 py-1 bg-orange-50 text-[#F97316] rounded-full">
-                {activeJobs.length} active
-              </span>
+              {activeJobs.length > 0 && (
+                <span className="text-[10px] font-bold px-2.5 py-1 bg-brand-accent/10 text-brand-accent rounded border border-brand-accent/20 uppercase tracking-wider">
+                  {activeJobs.length} Ongoing
+                </span>
+              )}
             </div>
 
-            <div className="p-6">
+            <div className="p-6 sm:p-8 flex-1">
               {loading ? (
-                <div className="py-12 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">
-                  Loading service requests...
+                <div className="h-full flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-accent"></div>
                 </div>
               ) : activeJobs.length === 0 ? (
-                <div className="py-16 text-center space-y-3">
-                  <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center mx-auto text-slate-400">
-                    <Wrench className="w-7 h-7" />
+                <div className="h-full flex flex-col items-center justify-center py-12 text-center space-y-4">
+                  <div className="w-20 h-20 rounded-full bg-surface-secondary border border-border-subtle flex items-center justify-center mx-auto text-text-secondary/50 shadow-inner">
+                    <Wrench className="w-10 h-10" />
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-bold text-[#0F172A]">No active service requests</p>
-                    <p className="text-xs text-slate-500 font-semibold max-w-xs mx-auto">
-                      All your service jobs have been resolved. Need something fixed? Book a technician below.
+                  <div className="space-y-2">
+                    <p className="text-lg font-bold text-text-primary">No active service requests</p>
+                    <p className="text-sm text-text-secondary font-medium max-w-sm mx-auto leading-relaxed">
+                      All your service jobs have been resolved or you haven't booked one yet. Need something fixed?
                     </p>
                   </div>
-                  <Link 
+                  <Link
                     to="/customer/create-request"
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"
+                    className="inline-flex items-center gap-2 mt-4 px-6 py-3 bg-gradient-to-r from-brand-accent to-orange-400 hover:from-orange-500 hover:to-orange-400 text-white text-sm font-extrabold tracking-wide uppercase rounded-xl shadow-lg shadow-brand-accent/25 transition-all hover:-translate-y-0.5 cursor-pointer"
                   >
-                    <PlusCircle className="w-4 h-4" /> Book a Technician
+                    <PlusCircle className="w-5 h-5" /> Book a Technician
                   </Link>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100">
+                <div className="space-y-4">
                   {activeJobs.map(job => (
-                    <div key={job._id} className="py-4.5 first:pt-0 last:pb-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                      <div className="space-y-1.5 max-w-lg">
+                    <div
+                      key={job._id}
+                      className={`group relative bg-surface-primary border border-border-subtle rounded-2xl p-5 hover:shadow-lg transition-all duration-300 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5 overflow-hidden ${job.urgency === 'critical' ? 'border-l-4 border-l-rose-500' :
+                          job.urgency === 'high' ? 'border-l-4 border-l-brand-accent' :
+                            job.urgency === 'medium' ? 'border-l-4 border-l-sky-500' :
+                              'border-l-4 border-l-text-secondary/50'
+                        }`}
+                    >
+                      {/* Subtle hover gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-surface-secondary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+
+                      <div className="relative z-10 space-y-2.5 max-w-lg w-full">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
-                            job.urgency === 'critical' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
-                            job.urgency === 'high' ? 'bg-orange-50 text-[#F97316] border border-orange-100' :
-                            job.urgency === 'medium' ? 'bg-sky-50 text-sky-600 border border-sky-100' :
-                            'bg-slate-50 text-slate-600 border border-slate-100'
-                          }`}>
-                            {job.urgency} priority
-                          </span>
-                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
-                            job.status === 'in-progress' ? 'bg-blue-50 text-blue-600 border border-blue-150 animate-pulse' :
-                            job.status === 'assigned' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                            'bg-amber-50 text-amber-600 border border-amber-100'
-                          }`}>
+                          <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg border ${job.status === 'in-progress' ? 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20 shadow-sm animate-pulse' :
+                              job.status === 'assigned' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 shadow-sm' :
+                                'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 shadow-sm'
+                            }`}>
                             {job.status.replace('-', ' ')}
                           </span>
-                        </div>
-                        <h3 className="text-sm font-extrabold text-[#0F172A] leading-tight">
-                          {job.title}
-                        </h3>
-                        <p className="text-xs text-slate-500 font-semibold line-clamp-1">
-                          {job.description}
-                        </p>
-                        <div className="flex items-center gap-4 text-[10px] font-semibold text-slate-400">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 shrink-0" /> {job.scheduledDate}
+                          <span className="text-[10px] font-bold text-text-secondary/70 uppercase tracking-wide">
+                            {job.urgency} priority
                           </span>
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5 shrink-0" /> {job.location}
+                        </div>
+
+                        <div>
+                          <h3 className="text-base font-extrabold text-text-primary leading-tight group-hover:text-brand-accent transition-colors">
+                            {job.title}
+                          </h3>
+                          <p className="text-sm text-text-secondary font-medium line-clamp-1 mt-1">
+                            {job.description}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-5 text-xs font-semibold text-text-secondary/70 pt-1">
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="w-4 h-4 text-text-secondary/50" /> {job.scheduledDate}
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <MapPin className="w-4 h-4 text-text-secondary/50" /> {job.location}
                           </span>
                         </div>
                       </div>
 
                       {/* Action trigger */}
-                      <div className="shrink-0 flex items-center gap-2 w-full sm:w-auto">
+                      <div className="relative z-10 shrink-0 w-full sm:w-auto">
                         {job.status === 'in-progress' || job.status === 'assigned' ? (
                           <Link
                             to="/customer/track"
                             state={{ jobId: job._id }}
-                            className="w-full sm:w-auto px-4 py-2 text-center text-xs font-bold text-white bg-[#0284C7] hover:bg-sky-600 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                            className="w-full sm:w-auto px-5 py-2.5 text-center text-xs font-bold text-white bg-brand-accent hover:bg-orange-600 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer hover:shadow-xl"
                           >
-                            <MapPin className="w-3.5 h-3.5" /> Track Tech
+                            <MapPin className="w-4 h-4" /> Track Tech
                           </Link>
                         ) : (
-                          <span className="w-full sm:w-auto px-4 py-2 text-center text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded-xl">
-                            Awaiting Dispatcher
-                          </span>
+                          <div className="w-full sm:w-auto px-4 py-2.5 text-center text-xs font-bold text-text-secondary bg-surface-secondary border border-border-subtle rounded-xl flex items-center justify-center gap-2">
+                            <Clock className="w-4 h-4" /> Awaiting Dispatch
+                          </div>
                         )}
                       </div>
                     </div>
@@ -207,91 +198,81 @@ export default function CustomerDashboard() {
         </div>
 
         {/* Right Side: Quick Navigation Cards & Pending Invoices */}
-        <div className="lg:col-span-4 space-y-6">
-          
+        <div className="lg:col-span-4 space-y-6 flex flex-col">
+
           {/* Quick Actions Panel */}
-          <div className="bg-white border border-slate-150 rounded-2xl p-6 shadow-xs space-y-4">
-            <h3 className="text-sm font-black uppercase text-[#64748B] tracking-wider">
+          <div className="bg-surface-primary border border-border-subtle rounded-xl p-6 shadow-sm space-y-5 flex-1">
+            <h3 className="text-sm font-black uppercase text-text-secondary tracking-widest pl-1">
               Quick Actions
             </h3>
-            
-            <div className="grid grid-cols-1 gap-2.5">
-              <Link
-                to="/customer/create-request"
-                className="flex items-center justify-between p-3.5 bg-orange-50/50 hover:bg-orange-50 border border-orange-100 rounded-xl text-left transition-all hover:translate-x-0.5"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-orange-100 flex items-center justify-center text-[#F97316]">
-                    <PlusCircle className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-extrabold text-[#0F172A]">Book Technician</div>
-                    <div className="text-[10px] text-slate-500 font-semibold">Schedule a repair or install</div>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-[#F97316]" />
-              </Link>
 
+            <div className="space-y-3">
               <Link
                 to="/customer/requests"
-                className="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/60 rounded-xl text-left transition-all hover:translate-x-0.5"
+                className="group flex items-center justify-between p-4 bg-surface-primary border border-border-subtle hover:border-text-primary/20 rounded-xl text-left transition-all hover:shadow-md"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-slate-200/60 flex items-center justify-center text-[#475569]">
-                    <FileText className="w-5 h-5" />
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-surface-secondary border border-border-subtle group-hover:bg-text-primary flex items-center justify-center text-text-secondary group-hover:text-page-bg transition-colors duration-300">
+                    <FileText className="w-6 h-6" />
                   </div>
                   <div>
-                    <div className="text-xs font-extrabold text-[#0F172A]">My Service Tickets</div>
-                    <div className="text-[10px] text-slate-500 font-semibold">Manage active ticket logs</div>
+                    <div className="text-sm font-extrabold text-text-primary">My Service Requests</div>
+                    <div className="text-xs text-text-secondary font-medium">View and manage your requests</div>
                   </div>
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-500" />
+                <div className="w-8 h-8 rounded-full bg-surface-secondary group-hover:bg-text-primary/10 flex items-center justify-center transition-colors border border-transparent group-hover:border-text-primary/20">
+                  <ArrowRight className="w-4 h-4 text-text-secondary/50 group-hover:text-text-primary transition-colors" />
+                </div>
               </Link>
 
               <Link
                 to="/customer/invoices"
-                className="flex items-center justify-between p-3.5 bg-rose-50/20 hover:bg-rose-50/50 border border-rose-100/60 rounded-xl text-left transition-all hover:translate-x-0.5"
+                className="group flex items-center justify-between p-4 bg-surface-primary border border-border-subtle hover:border-rose-500/50 rounded-xl text-left transition-all hover:shadow-lg hover:shadow-rose-500/5"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600">
-                    <Receipt className="w-5 h-5" />
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-rose-500/10 border border-rose-500/20 group-hover:bg-rose-500 flex items-center justify-center text-rose-500 group-hover:text-white transition-colors duration-300">
+                    <Receipt className="w-6 h-6" />
                   </div>
                   <div>
-                    <div className="text-xs font-extrabold text-[#0F172A]">Billings & Payments</div>
-                    <div className="text-[10px] text-slate-500 font-semibold">View and pay active invoices</div>
+                    <div className="text-sm font-extrabold text-text-primary">Billings & Payments</div>
+                    <div className="text-xs text-text-secondary font-medium">View and pay invoices</div>
                   </div>
                 </div>
-                <ArrowRight className="w-4 h-4 text-rose-600" />
+                <div className="w-8 h-8 rounded-full bg-surface-secondary group-hover:bg-rose-500/10 flex items-center justify-center transition-colors border border-transparent group-hover:border-rose-500/20">
+                  <ArrowRight className="w-4 h-4 text-text-secondary/50 group-hover:text-rose-500 transition-colors" />
+                </div>
               </Link>
             </div>
           </div>
 
           {/* Review Alerts */}
           {pendingReviews.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 shadow-xs space-y-3">
-              <div className="flex items-start gap-2.5">
-                <Star className="w-5 h-5 text-amber-500 shrink-0" />
-                <div className="space-y-1">
-                  <h4 className="text-xs font-black uppercase text-amber-800 tracking-wider">
-                    Submit Job Feedback
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-6 shadow-sm space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                  <Star className="w-5 h-5" />
+                </div>
+                <div className="space-y-1 mt-1">
+                  <h4 className="text-sm font-black uppercase text-amber-700 dark:text-amber-400 tracking-wider">
+                    Feedback Requested
                   </h4>
-                  <p className="text-xs text-amber-700 font-semibold leading-relaxed">
-                    You have {pendingReviews.length} resolved request(s) awaiting your feedback. Your review helps us monitor service quality!
+                  <p className="text-sm text-amber-700/80 dark:text-amber-500/80 font-semibold leading-relaxed">
+                    You have <span className="font-bold">{pendingReviews.length}</span> resolved request(s) awaiting your feedback. Help us improve!
                   </p>
                 </div>
               </div>
               <Link
                 to="/customer/reviews"
-                className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl text-center flex items-center justify-center gap-1 cursor-pointer transition-all shadow-xs"
+                className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-xl text-center flex items-center justify-center gap-2 cursor-pointer transition-all shadow-md shadow-amber-500/20 hover:shadow-lg"
               >
-                Rate Completed Service <ArrowRight className="w-3.5 h-3.5" />
+                Rate Completed Service <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           )}
 
         </div>
       </div>
-      
+
     </div>
   );
 }

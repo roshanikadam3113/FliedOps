@@ -1,98 +1,59 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-const mongoose = require('mongoose');
 
-// Helper to format database/validation errors for user-friendly responses
+/**
+ * Helper to format database/validation errors for user-friendly responses.
+ * Parses MongoDB duplicate key errors and Mongoose validation errors.
+ * 
+ * @param {Error} error - The error object thrown during execution
+ * @returns {string} - A clean, user-friendly error message
+ */
 const formatError = (error) => {
-  // MongoDB Duplicate Key Error (E11000)
+  // Handle MongoDB Duplicate Key Error (e.g., duplicate email)
   if (error.code === 11000) {
     if (error.keyValue && error.keyValue.email) {
       return 'An account with this email address already exists';
     }
-    const fields = Object.keys(error.keyValue || {});
-    if (fields.length > 0) {
-      const field = fields[0];
-      const capitalizedField = field.charAt(0).toUpperCase() + field.slice(1);
-      return `${capitalizedField} already exists. Please use a different value.`;
-    }
     return 'A user with these details already exists';
   }
-
-  // Mongoose Validation Error
+  // Handle Mongoose Validation Errors
   if (error.name === 'ValidationError') {
     const messages = Object.values(error.errors).map(err => err.message);
     return messages.join(', ');
   }
-
   return error.message || 'An unexpected error occurred';
 };
 
-// In-memory user fallback store when MongoDB connection is inactive
-const inMemoryUsers = [
-  {
-    _id: 'demo_admin_1',
-    name: 'FieldOps Admin',
-    email: 'admin@fieldops.com',
-    password: '$2a$10$e.w2J1e9O9YtS0H4T6dG.eXyU4dG1W1o7qK1V1e1d1e1d1e1d1e1', // hashed 'admin123'
-    rawPassword: 'password123',
-    role: 'admin',
-    phone: '+91 98765 43210',
-    specialty: 'Fleet Management',
-    location: 'Kolhapur HQ',
-    rating: 5.0
-  },
-  {
-    _id: 'demo_tech_1',
-    name: 'Rahul Sharma',
-    email: 'rahul@fieldops.com',
-    password: '$2a$10$e.w2J1e9O9YtS0H4T6dG.eXyU4dG1W1o7qK1V1e1d1e1d1e1d1e1',
-    rawPassword: 'password123',
-    role: 'technician',
-    phone: '+91 98123 45678',
-    specialty: 'AC & HVAC',
-    location: 'Kolhapur Central',
-    rating: 4.9
-  },
-  {
-    _id: 'demo_cust_1',
-    name: 'Roshani Kadam',
-    email: 'roshani@gmail.com',
-    password: '$2a$10$e.w2J1e9O9YtS0H4T6dG.eXyU4dG1W1o7qK1V1e1d1e1d1e1d1e1',
-    rawPassword: 'password123',
-    role: 'customer',
-    phone: '+91 99887 76655',
-    specialty: 'General Maintenance',
-    location: 'Sector 62, Kolhapur',
-    rating: 4.8
-  }
-];
-
-// Helper to generate JWT token
+/**
+ * Helper to generate a JWT token for authentication.
+ * 
+ * @param {string} id - The user ID to encode in the payload
+ * @returns {string} - The signed JWT token (valid for 30 days)
+ */
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'fieldops_fallback_secret', {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: '30d'
   });
 };
 
-const isDbConnected = () => {
-  return mongoose.connection && mongoose.connection.readyState === 1;
-};
-
-// @desc    Register new user
-// @route   POST /api/auth/register
-// @access  Public
-const registerUser = async (req, res) => {
+/**
+ * @desc    Register a new user in the system
+ * @route   POST /api/auth/register
+ * @access  Public
+ */
+const registerUser = async (req, res, next) => {
   try {
-    const { name, email, password, role, phone, specialty, location } = req.body;
+    const { name, email, password, phone, specialty, location } = req.body;
 
+    // 1. Basic input validation
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: 'Please provide name, email, and password' });
     }
-
     if (password.length < 6) {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
     }
-
+    
+    // 2. Email format validation
     const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ success: false, message: 'Please provide a valid email address' });
@@ -100,181 +61,79 @@ const registerUser = async (req, res) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    if (isDbConnected()) {
-      // DB connection is active
-      const userExists = await User.findOne({ email: normalizedEmail });
-      if (userExists) {
-        return res.status(400).json({ success: false, message: 'User already exists with this email' });
-      }
+    // 3. Check for existing user
+    const userExists = await User.findOne({ email: normalizedEmail });
+    if (userExists) {
+      return res.status(400).json({ success: false, message: 'User already exists with this email' });
+    }
 
-      const user = await User.create({
-        name: name.trim(),
-        email: normalizedEmail,
-        password,
-        role: role || 'customer',
-        phone: phone || '',
-        specialty: specialty || 'General Maintenance',
-        location: location || 'Kolhapur'
-      });
+    // 4. Force registration role to 'customer' for security
+    // (Technicians/Admins must be created via secure Admin endpoints)
+    let assignedRole = 'customer';
 
-      if (user) {
-        const token = generateToken(user._id);
-        return res.status(201).json({
-          success: true,
-          user: {
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            phone: user.phone,
-            specialty: user.specialty,
-            location: user.location,
-            rating: user.rating
-          },
-          token
-        });
-      }
-    } else {
-      // In-memory store fallback
-      const existingInMemory = inMemoryUsers.find(u => u.email.toLowerCase() === normalizedEmail);
-      if (existingInMemory) {
-        return res.status(400).json({ success: false, message: 'User already exists with this email' });
-      }
+    // 5. Create the new user record in the database
+    const user = await User.create({
+      name: name.trim(),
+      email: normalizedEmail,
+      password,
+      role: assignedRole,
+      phone: phone || '',
+      specialty: specialty || 'General Maintenance',
+      location: location || 'Kolhapur',
+      // If role is expanded in the future, these defaults apply
+      ...(assignedRole === 'technician' ? { isActive: true, availabilityStatus: 'AVAILABLE' } : {})
+    });
 
-      const newUser = {
-        _id: `user_${Date.now()}`,
-        name: name.trim(),
-        email: normalizedEmail,
-        rawPassword: password,
-        role: role || 'customer',
-        phone: phone || '',
-        specialty: specialty || 'General Maintenance',
-        location: location || 'Kolhapur',
-        rating: 4.8
-      };
-
-      inMemoryUsers.push(newUser);
-      const token = generateToken(newUser._id);
-
+    // 6. Return the newly created user and a JWT token
+    if (user) {
+      const token = generateToken(user._id);
       return res.status(201).json({
         success: true,
         user: {
-          _id: newUser._id,
-          name: newUser.name,
-          email: newUser.email,
-          role: newUser.role,
-          phone: newUser.phone,
-          specialty: newUser.specialty,
-          location: newUser.location,
-          rating: newUser.rating
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          phone: user.phone,
+          specialty: user.specialty,
+          location: user.location,
+          rating: user.rating,
+          notificationPreferences: user.notificationPreferences
         },
         token
       });
     }
   } catch (error) {
-    console.error('Register error:', error);
-    const friendlyMessage = formatError(error);
     const statusCode = (error.code === 11000 || error.name === 'ValidationError') ? 400 : 500;
-    return res.status(statusCode).json({ success: false, message: friendlyMessage });
+    res.status(statusCode);
+    next(new Error(formatError(error)));
   }
 };
 
-// @desc    Authenticate user & get token
-// @route   POST /api/auth/login
-// @access  Public
-const loginUser = async (req, res) => {
+/**
+ * @desc    Authenticate user & get token (Login)
+ * @route   POST /api/auth/login
+ * @access  Public
+ */
+const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
+    // 1. Basic validation
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Please provide email and password' });
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+    
+    // 2. Fetch user and explicitly select the password field for comparison
+    const user = await User.findOne({ email: normalizedEmail }).select('+password');
 
-    if (isDbConnected()) {
-      const user = await User.findOne({ email: normalizedEmail }).select('+password');
+    // 3. Verify password hash
+    if (user && (await user.matchPassword(password))) {
+      const token = generateToken(user._id);
 
-      if (user && (await user.matchPassword(password))) {
-        const token = generateToken(user._id);
-
-        return res.json({
-          success: true,
-          user: {
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            phone: user.phone,
-            specialty: user.specialty,
-            location: user.location,
-            rating: user.rating
-          },
-          token
-        });
-      } else {
-        return res.status(401).json({ success: false, message: 'Invalid email or password' });
-      }
-    } else {
-      // In-memory store fallback search
-      const user = inMemoryUsers.find(u => u.email.toLowerCase() === normalizedEmail);
-
-      if (user && (user.rawPassword === password || password === 'password123' || password.length >= 6)) {
-        const token = generateToken(user._id);
-
-        return res.json({
-          success: true,
-          user: {
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            phone: user.phone,
-            specialty: user.specialty,
-            location: user.location,
-            rating: user.rating
-          },
-          token
-        });
-      } else {
-        return res.status(401).json({ success: false, message: 'Invalid email or password' });
-      }
-    }
-  } catch (error) {
-    console.error('Login error:', error);
-    const friendlyMessage = formatError(error);
-    const statusCode = (error.name === 'ValidationError') ? 400 : 500;
-    return res.status(statusCode).json({ success: false, message: friendlyMessage });
-  }
-};
-
-// @desc    Get logged in user profile
-// @route   GET /api/auth/me
-// @access  Private
-const getMe = async (req, res) => {
-  try {
-    if (isDbConnected() && req.user) {
-      const user = await User.findById(req.user._id);
-      if (user) {
-        return res.json({
-          success: true,
-          user: {
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            phone: user.phone,
-            specialty: user.specialty,
-            location: user.location,
-            rating: user.rating
-          }
-        });
-      }
-    }
-
-    // In-memory or request user fallback
-    if (req.user) {
-      const user = inMemoryUsers.find(u => u._id === req.user._id) || req.user;
+      // Return user profile and token
       return res.json({
         success: true,
         user: {
@@ -282,18 +141,122 @@ const getMe = async (req, res) => {
           name: user.name,
           email: user.email,
           role: user.role,
-          phone: user.phone || '+91 98765 43210',
-          specialty: user.specialty || 'General Maintenance',
-          location: user.location || 'Kolhapur',
-          rating: user.rating || 4.8
+          phone: user.phone,
+          specialty: user.specialty,
+          location: user.location,
+          rating: user.rating,
+          notificationPreferences: user.notificationPreferences
+        },
+        token
+      });
+    } else {
+      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+    }
+  } catch (error) {
+    const statusCode = (error.name === 'ValidationError') ? 400 : 500;
+    res.status(statusCode);
+    next(new Error(formatError(error)));
+  }
+};
+
+/**
+ * @desc    Get logged in user profile
+ * @route   GET /api/auth/me
+ * @access  Private
+ */
+const getMe = async (req, res, next) => {
+  try {
+    // req.user is hydrated by the authMiddleware protecting this route
+    const user = await User.findById(req.user._id);
+    
+    if (user) {
+      return res.json({
+        success: true,
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          phone: user.phone,
+          specialty: user.specialty,
+          location: user.location,
+          rating: user.rating,
+          notificationPreferences: user.notificationPreferences
         }
       });
     }
-
     return res.status(404).json({ success: false, message: 'User profile not found' });
   } catch (error) {
-    console.error('GetMe error:', error);
-    return res.status(500).json({ success: false, message: 'Server error retrieving user profile' });
+    res.status(500);
+    next(error);
+  }
+};
+
+/**
+ * @desc    Update user profile and/or password
+ * @route   PUT /api/auth/profile
+ * @access  Private
+ */
+const updateProfile = async (req, res, next) => {
+  try {
+    const { name, phone, location, currentPassword, newPassword, notificationPreferences } = req.body;
+    const userId = req.user._id;
+
+    // Fetch user with password to allow for password change validation
+    const user = await User.findById(userId).select('+password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // 1. Update basic profile fields if provided
+    if (name) user.name = name.trim();
+    if (phone !== undefined) user.phone = phone;
+    if (location !== undefined) user.location = location;
+    
+    // 2. Deep merge notification preferences
+    if (notificationPreferences) {
+      user.notificationPreferences = {
+        ...user.notificationPreferences,
+        ...notificationPreferences
+      };
+    }
+
+    // 3. Handle password change
+    if (newPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({ success: false, message: 'Please provide your current password' });
+      }
+      const isMatch = await user.matchPassword(currentPassword);
+      if (!isMatch) {
+        return res.status(400).json({ success: false, message: 'Current password is incorrect' });
+      }
+      if (newPassword.length < 6) {
+        return res.status(400).json({ success: false, message: 'New password must be at least 6 characters long' });
+      }
+      user.password = newPassword;
+    }
+
+    // 4. Save changes to DB
+    await user.save();
+
+    // 5. Return updated profile
+    return res.json({
+      success: true,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        specialty: user.specialty,
+        location: user.location,
+        rating: user.rating,
+        notificationPreferences: user.notificationPreferences
+      }
+    });
+  } catch (error) {
+    res.status(500);
+    next(error);
   }
 };
 
@@ -301,6 +264,5 @@ module.exports = {
   registerUser,
   loginUser,
   getMe,
-  inMemoryUsers
+  updateProfile
 };
-
