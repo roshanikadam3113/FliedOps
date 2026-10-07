@@ -4,12 +4,12 @@
 FieldOps is an advanced, centralized platform designed to streamline dispatch, track real-time technician workflows, and manage customer relations for service companies. 
 
 ## Main Features
-- **Customer Portal:** Easily submit and track service requests and invoices.
+- **Customer Portal:** Easily submit and track service requests, view history, and securely pay invoices via Stripe.
 - **Admin Dispatch:** Intuitive dashboard for managing jobs, assigning technicians, and monitoring live business intelligence and analytics.
 - **Technician App:** Track jobs, record on-the-way statuses, consume inventory, and complete work orders directly from the field.
-- **AI Insights:** Demand prediction algorithms, smart technician recommendations, and inventory forecasting.
+- **AI Insights:** Demand prediction algorithms, smart technician recommendations (with dedicated Smart Assignment UI), and inventory forecasting.
 - **Automated Communication:** In-App, Socket.IO, Email (via Resend) and SMS (via Twilio) event notifications.
-- **Billing & Inventory:** Robust inventory consumption workflows connected directly to dynamic invoice generation.
+- **Billing & Payments:** Robust inventory consumption connected to dynamic invoice generation, featuring full **Stripe Checkout & Webhook** integration for live payments.
 
 ## Architecture & Tech Stack
 - **Frontend:** React, TailwindCSS, React Router, Vite, Recharts, Lucide Icons.
@@ -30,12 +30,14 @@ Ensure MongoDB is running locally on port `27017` or use MongoDB Atlas.
 
 ### 2. Environment Variables
 Copy the `.env.example` file in the `server` directory and rename it to `.env`:
-```
+```env
 PORT=5000
 NODE_ENV=development
-MONGO_URI=mongodb://localhost:27017/fieldops
+MONGO_URL=mongodb://localhost:27017/fieldops
 JWT_SECRET=your_jwt_secret_key
 CLIENT_URL=http://localhost:5173
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
 EMAIL_PROVIDER=RESEND
 EMAIL_API_KEY=your_key
 EMAIL_FROM=notifications@fieldops.com
@@ -43,6 +45,12 @@ SMS_PROVIDER=TWILIO
 SMS_ACCOUNT_SID=your_sid
 SMS_AUTH_TOKEN=your_token
 SMS_FROM=+1234567890
+```
+
+Create a `.env` file in the `client` directory:
+```env
+VITE_API_URL=http://localhost:5000/api
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
 ```
 
 ### 3. Running Backend
@@ -73,5 +81,5 @@ npm run build
 The static assets can be served by configuring `NODE_ENV=production` inside the server.
 
 ## Payment & Notification Architectures
-- Payments exist logically but omit live PCI-DSS gateways, safely capturing webhooks and preventing duplication.
-- Notifications utilize background asynchronous promises failing safely without breaking core FieldOps transaction limits.
+- **Payments:** Fully integrated with Stripe. The backend generates secure Stripe Checkout sessions and listens via a Webhook (`/api/payments/webhook`) to automatically mark invoices as `PAID` upon successful transaction.
+- **Notifications:** Notifications utilize background asynchronous promises failing safely without breaking core FieldOps transaction limits. Real-time in-app alerts are powered by Socket.IO.
