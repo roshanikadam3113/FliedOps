@@ -12,9 +12,8 @@ const app = express();
 const server = http.createServer(app);
 
 const clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.trim().replace(/\/$/, '') : '';
-const allowedOrigins = process.env.NODE_ENV === 'production' 
-  ? [clientUrl, 'https://flied-ops.vercel.app'] // Hardcoding the known URL as a fallback just in case
-  : ['http://localhost:5173', 'http://localhost:5000', '*'];
+// Allowing all origins safely to prevent any Vercel/Render trailing slash or http/https mismatches
+const allowedOrigins = '*';
 
 const io = new Server(server, {
   cors: {
