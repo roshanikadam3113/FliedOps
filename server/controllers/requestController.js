@@ -6,6 +6,13 @@ const Review = require('../models/Review');
 const { notifyUser } = require('../services/notificationService');
 const { REQUEST_STATUS, JOB_STATUS, NOTIFICATION_EVENTS } = require('../utils/constants');
 
+/**
+ * Emits a socket event to a specific room or user.
+ * @param {Object} req - The Express request object, used to access the socket io instance.
+ * @param {String|ObjectId} roomOrUser - The room ID or User ID to emit to.
+ * @param {String} eventName - The name of the event to emit.
+ * @param {Object} payload - The data payload to send with the event.
+ */
 const emitSocketEvent = (req, roomOrUser, eventName, payload) => {
   try {
     const io = req.app.get('io');
@@ -17,7 +24,11 @@ const emitSocketEvent = (req, roomOrUser, eventName, payload) => {
   }
 };
 
-// Map separate entities to the unified format the frontend expects
+/**
+ * Maps separated ServiceRequest, Job, Invoice, and Review entities into a unified Job format for the frontend.
+ * @param {Object} serviceRequest - The original ServiceRequest object.
+ * @returns {Promise<Object>} The aggregated job data object.
+ */
 const aggregateJobData = async (serviceRequest) => {
   const job = await Job.findOne({ serviceRequest: serviceRequest._id }).lean();
   let invoice = null;
@@ -35,6 +46,7 @@ const aggregateJobData = async (serviceRequest) => {
     technician: serviceRequest.assignedTechnician, // Could be populated
     status: job ? job.status : serviceRequest.status, // Technician status takes over visually in frontend
     serviceNotes: job ? job.serviceNotes : '',
+    partsUsed: job ? job.partsUsed : [],
     invoice: invoice ? {
       amount: invoice.totalAmount,
       serviceCharge: invoice.serviceCharge,
@@ -51,11 +63,17 @@ const aggregateJobData = async (serviceRequest) => {
   };
 };
 
+/**
+ * Controller to create a new service request and auto-assign a technician if available.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ * @param {Function} next - Express next middleware function.
+ */
 const createJobRequest = async (req, res, next) => {
   try {
-    const { title, description, category, serviceType, urgency, location, scheduledDate, contactPhone, image } = req.body;
+    const { title, description, category, serviceType, urgency, location, fullAddress, scheduledDate, contactPhone, image } = req.body;
 
-    if (!title || !description || !location || !scheduledDate) {
+    if (!title || !description || !location || !fullAddress || !scheduledDate) {
       return res.status(400).json({ success: false, message: 'Please fill in all required fields' });
     }
 
@@ -70,10 +88,15 @@ const createJobRequest = async (req, res, next) => {
       specialty: { $regex: new RegExp(`^${category || 'General Maintenance'}$`, 'i') }
     });
 
-    const initialStatus = matchingTechnician ? REQUEST_STATUS.ASSIGNED : REQUEST_STATUS.PENDING;
-    const initialNote = matchingTechnician 
-        ? `Service request created and auto-assigned to ${matchingTechnician.name}` 
-        : 'Service request created by customer';
+    if (!matchingTechnician) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Sorry, we do not currently have an available technician in your area for this service.' 
+      });
+    }
+
+    const initialStatus = REQUEST_STATUS.ASSIGNED;
+    const initialNote = `Service request created and auto-assigned to ${matchingTechnician.name}`;
 
     const request = await ServiceRequest.create({
       customer: customerId,
@@ -85,6 +108,7 @@ const createJobRequest = async (req, res, next) => {
       image: image || '',
       urgency: urgency || 'medium',
       location,
+      fullAddress,
       scheduledDate,
       status: initialStatus,
       assignedTechnician: matchingTechnician ? matchingTechnician._id : null,
@@ -137,6 +161,11 @@ const createJobRequest = async (req, res, next) => {
   }
 };
 
+/**
+ * Aggregates data for multiple service requests to format them for the frontend.
+ * @param {Array} serviceRequests - Array of ServiceRequest objects.
+ * @returns {Promise<Array>} Array of aggregated job objects.
+ */
 const aggregateMultipleJobData = async (serviceRequests) => {
   const requestIds = serviceRequests.map(req => req._id);
   
@@ -179,6 +208,7 @@ const aggregateMultipleJobData = async (serviceRequests) => {
       technician: serviceRequest.assignedTechnician,
       status: job ? job.status : serviceRequest.status,
       serviceNotes: job ? job.serviceNotes : '',
+      partsUsed: job ? job.partsUsed : [],
       invoice: invoice ? {
         amount: invoice.totalAmount,
         serviceCharge: invoice.serviceCharge,
@@ -196,6 +226,12 @@ const aggregateMultipleJobData = async (serviceRequests) => {
   });
 };
 
+/**
+ * Retrieves all jobs associated with the authenticated customer.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ * @param {Function} next - Express next middleware function.
+ */
 const getCustomerJobs = async (req, res, next) => {
   try {
     const customerId = req.user._id;
@@ -212,6 +248,12 @@ const getCustomerJobs = async (req, res, next) => {
   }
 };
 
+/**
+ * Retrieves a specific job by its Service Request ID, with authorization checks based on role.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ * @param {Function} next - Express next middleware function.
+ */
 const getJobById = async (req, res, next) => {
   try {
     const requestId = req.params.id;
@@ -247,6 +289,12 @@ const getJobById = async (req, res, next) => {
   }
 };
 
+/**
+ * Cancels a service request if it's not already in progress or completed.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ * @param {Function} next - Express next middleware function.
+ */
 const cancelJobRequest = async (req, res, next) => {
   try {
     const requestId = req.params.id;
@@ -299,6 +347,12 @@ const cancelJobRequest = async (req, res, next) => {
   }
 };
 
+/**
+ * Reschedules a service request to a new date if not already in progress or completed.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ * @param {Function} next - Express next middleware function.
+ */
 const rescheduleJobRequest = async (req, res, next) => {
   try {
     const requestId = req.params.id;

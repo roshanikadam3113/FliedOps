@@ -79,10 +79,7 @@ export default function App() {
                   path="/admin/jobs" 
                   element={<AdminJobs />} 
                 />
-                <Route 
-                  path="/admin/dispatch" 
-                  element={<AdminDispatch />} 
-                />
+
                 <Route 
                   path="/admin/smart-assignment" 
                   element={<AdminSmartAssignment />} 

@@ -38,26 +38,99 @@ export default function MyInvoices() {
 
   useEffect(() => {
     fetchInvoices();
-    
-    const query = new URLSearchParams(window.location.search);
-    if (query.get('success')) {
-      setPaymentSuccess(true);
-      setTimeout(() => setPaymentSuccess(false), 4000);
-      window.history.replaceState(null, '', window.location.pathname);
-    }
   }, []);
+
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
 
   const handlePay = async (invoice, jobId) => {
     setPayingInvoiceId(invoice._id);
     try {
-      const data = await apiRequest(`/payments/invoices/${invoice._id}/pay`, { method: 'POST' });
-      if (data && data.success && data.url) {
-        window.location.href = data.url; // Redirect to Stripe Checkout
-      } else {
-        throw new Error('Failed to initialize Stripe checkout');
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded) {
+        throw new Error('Razorpay SDK failed to load. Check your internet connection.');
       }
+
+      // Step 1: Create Order on Backend
+      const orderData = await apiRequest(`/payments/invoices/${invoice._id}/pay`, { method: 'POST' });
+      
+      if (!orderData || !orderData.success) {
+        throw new Error(orderData?.message || 'Failed to initialize payment');
+      }
+
+      // Step 2: Initialize Razorpay Checkout
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID, 
+        amount: orderData.amount, 
+        currency: orderData.currency,
+        name: "FieldOps Service",
+        description: `Payment for Invoice ${invoice.invoiceNumber}`,
+        order_id: orderData.orderId, 
+        handler: async function (response) {
+            // Step 3: Verify Payment on Backend
+            try {
+              const verifyData = await apiRequest(`/payments/verify`, {
+                method: 'POST',
+                body: JSON.stringify({
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_signature: response.razorpay_signature,
+                  invoiceId: invoice._id
+                })
+              });
+              
+              if (verifyData.success) {
+                // Optimistically update status immediately in the UI
+                setInvoices(prev => prev.map(inv => 
+                  inv._id === invoice._id ? { ...inv, status: 'paid' } : inv
+                ));
+                setPaymentSuccess(true);
+                setTimeout(() => {
+                  setPaymentSuccess(false);
+                  setPayingInvoiceId(null);
+                  fetchInvoices();
+                }, 3000);
+              } else {
+                 alert("Payment verification failed");
+                 setPayingInvoiceId(null);
+              }
+            } catch (err) {
+               console.error("Verification error", err);
+               alert("Payment verification failed");
+               setPayingInvoiceId(null);
+            }
+        },
+        prefill: {
+            name: orderData.customer.name,
+            email: orderData.customer.email,
+            contact: orderData.customer.phone
+        },
+        theme: {
+            color: "#0284c7" // brand primary color
+        }
+      };
+      
+      const rzp1 = new window.Razorpay(options);
+      rzp1.on('payment.failed', function (response){
+        alert(response.error.description);
+        setPayingInvoiceId(null);
+      });
+      rzp1.open();
+      
     } catch (err) {
       console.error(err);
+      alert(err.message);
       setPayingInvoiceId(null);
     }
   };

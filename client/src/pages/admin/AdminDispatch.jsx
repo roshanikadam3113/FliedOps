@@ -89,7 +89,7 @@ export default function AdminDispatch() {
         }
       }
     } catch (err) {
-      alert('Failed to assign technician');
+      alert(`Failed to assign technician: ${err.message || err}`);
     } finally {
       setAssigning(false);
     }

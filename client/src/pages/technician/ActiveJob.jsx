@@ -40,7 +40,7 @@ export default function ActiveJob() {
         getAvailableParts()
       ]);
       setAvailableParts(partsList);
-      if (partsList.length > 0) setSelectedPartId(partsList[0]._id);
+      setSelectedPartId('');
 
       const selectedJobId = locationState.state?.jobId;
       
@@ -56,12 +56,11 @@ export default function ActiveJob() {
 
       setJob(targetJob);
       if (targetJob) {
-        setTraveling(targetJob.status === 'in-progress');
-        // If it was already marked in-progress in storage, allow technician to proceed to checkin/working
-        if (targetJob.status === 'in-progress') {
-          // Restore traveler state
-          setTraveling(true);
-        }
+        const isTraveling = ['on-the-way', 'arrived', 'in-progress'].includes(targetJob.status);
+        const isCheckedIn = ['arrived', 'in-progress'].includes(targetJob.status);
+        
+        setTraveling(isTraveling);
+        setCheckedIn(isCheckedIn);
       }
     } catch (err) {
       console.error(err);
@@ -77,7 +76,7 @@ export default function ActiveJob() {
   const handleStartTravel = async () => {
     if (!job) return;
     try {
-      await updateJobStatus(job._id, 'in-progress');
+      await updateJobStatus(job._id, 'on-the-way');
       setTraveling(true);
       // Refresh details
       const updatedJobs = await getTechJobs();
@@ -88,8 +87,18 @@ export default function ActiveJob() {
     }
   };
 
-  const handleCheckIn = () => {
-    setCheckedIn(true);
+  const handleCheckIn = async () => {
+    if (!job) return;
+    try {
+      await updateJobStatus(job._id, 'in-progress');
+      setCheckedIn(true);
+      // Refresh details
+      const updatedJobs = await getTechJobs();
+      const updated = updatedJobs.find(j => j._id === job._id);
+      if (updated) setJob(updated);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleAddPart = async () => {
@@ -98,8 +107,9 @@ export default function ActiveJob() {
     try {
       const updatedJob = await addPartToJob(job._id, selectedPartId, addQty);
       setJob(updatedJob);
-      // reset qty
+      // reset state
       setAddQty(1);
+      setSelectedPartId('');
     } catch (err) {
       alert(err.message || 'Failed to add part');
     } finally {
@@ -110,6 +120,12 @@ export default function ActiveJob() {
   const handleCompleteJob = async (e) => {
     e.preventDefault();
     if (!job) return;
+
+    if (selectedPartId) {
+      alert('You have selected a part but forgot to click "Add". Please click "Add" to include it in the invoice, or clear the dropdown before resolving.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -271,6 +287,7 @@ export default function ActiveJob() {
                         onChange={(e) => setSelectedPartId(e.target.value)}
                         className="flex-grow p-2.5 border border-border-subtle rounded-xl text-xs font-semibold bg-surface-secondary focus:outline-none focus:border-brand-accent text-text-primary"
                       >
+                        <option value="">-- Select a part to add --</option>
                         {availableParts.map((p) => (
                           <option key={p._id} value={p._id}>
                             {p.name} (₹{p.unitPrice}) - In Stock: {p.stockQuantity}
@@ -378,8 +395,12 @@ export default function ActiveJob() {
                 </span>
               </div>
               <div className="flex justify-between items-start gap-4">
-                <span className="font-semibold text-text-secondary shrink-0">Service Address</span>
+                <span className="font-semibold text-text-secondary shrink-0">City</span>
                 <span className="font-bold text-text-primary text-right leading-relaxed">{job.location}</span>
+              </div>
+              <div className="flex justify-between items-start gap-4">
+                <span className="font-semibold text-text-secondary shrink-0">Exact Address</span>
+                <span className="font-bold text-text-primary text-right leading-relaxed">{job.fullAddress || 'Address not provided'}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-text-secondary">Scheduled Time</span>

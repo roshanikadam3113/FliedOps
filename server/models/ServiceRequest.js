@@ -62,6 +62,10 @@ const serviceRequestSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Please provide the service location']
     },
+    fullAddress: {
+      type: String,
+      required: [true, 'Please provide the full exact address']
+    },
     scheduledDate: {
       type: String,
       required: [true, 'Please select a preferred service date']

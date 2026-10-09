@@ -5,9 +5,10 @@ let socket = null;
 export const getSocket = () => {
   if (!socket) {
     // Connect to backend server on current host or port 5000
-    const serverUrl = window.location.origin.includes('localhost')
-      ? 'http://localhost:5000'
-      : window.location.origin;
+    const apiUrl = import.meta.env.VITE_API_URL || '';
+    const serverUrl = apiUrl 
+      ? apiUrl.replace(/\/api\/?$/, '') 
+      : (window.location.hostname === 'localhost' ? 'http://localhost:5000' : window.location.origin);
 
     const token = localStorage.getItem('fieldops_token');
 

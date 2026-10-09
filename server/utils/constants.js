@@ -2,6 +2,7 @@ const REQUEST_STATUS = {
   PENDING: 'pending',
   REVIEWED: 'reviewed',
   ASSIGNED: 'assigned',
+  COMPLETED: 'completed',
   CANCELLED: 'cancelled'
 };
 

@@ -26,6 +26,7 @@ export default function CreateRequest() {
   const [serviceType, setServiceType] = useState('Standard Repair');
   const [urgency, setUrgency] = useState('medium');
   const [location, setLocation] = useState(user?.location || '');
+  const [fullAddress, setFullAddress] = useState('');
   const [contactPhone, setContactPhone] = useState(user?.phone || '');
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('10:00 AM');
@@ -54,8 +55,8 @@ export default function CreateRequest() {
     e.preventDefault();
     setError('');
 
-    if (!title.trim() || !description.trim() || !location.trim() || !scheduledDate || !contactPhone.trim()) {
-      setError('Please fill in all required fields: title, description, address, contact phone, and preferred date.');
+    if (!title.trim() || !description.trim() || !location.trim() || !fullAddress.trim() || !scheduledDate || !contactPhone.trim()) {
+      setError('Please fill in all required fields: title, description, city, full address, contact phone, and preferred date.');
       return;
     }
 
@@ -69,6 +70,7 @@ export default function CreateRequest() {
         serviceType,
         urgency,
         location: location.trim(),
+        fullAddress: fullAddress.trim(),
         contactPhone: contactPhone.trim(),
         scheduledDate: fullDateSlot,
         image: imagePreview
@@ -263,6 +265,7 @@ export default function CreateRequest() {
                   value={scheduledDate}
                   min={new Date().toISOString().split('T')[0]}
                   onChange={(e) => setScheduledDate(e.target.value)}
+                  onClick={(e) => e.target.showPicker && e.target.showPicker()}
                   className="w-full pl-10 pr-4 py-3 border border-border-subtle rounded-xl text-sm font-semibold focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent bg-surface-secondary focus:bg-surface-primary transition-all duration-200 text-text-primary [color-scheme:light] dark:[color-scheme:dark]"
                 />
               </div>
@@ -291,23 +294,52 @@ export default function CreateRequest() {
             </div>
           </div>
 
-          {/* Location */}
-          <div>
-            <label className="text-xs font-bold text-text-primary block mb-1.5">
-              Service Address <span className="text-rose-500">*</span>
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-secondary">
-                <MapPin className="w-4 h-4" />
+          {/* Location & Full Address */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label className="text-xs font-bold text-text-primary block mb-1.5">
+                Service City <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-secondary">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <select
+                  required
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-border-subtle rounded-xl text-sm font-semibold focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent bg-surface-secondary focus:bg-surface-primary transition-all duration-200 text-text-primary"
+                >
+                  <option value="">Select a city</option>
+                  <option value="Pune">Pune</option>
+                  <option value="Mumbai">Mumbai</option>
+                  <option value="Kolhapur">Kolhapur</option>
+                  <option value="Satara">Satara</option>
+                  <option value="Sangli">Sangli</option>
+                  <option value="Nashik">Nashik</option>
+                  <option value="Nagpur">Nagpur</option>
+                  <option value="Aurangabad">Aurangabad</option>
+                  <option value="Solapur">Solapur</option>
+                  <option value="Amravati">Amravati</option>
+                  <option value="Latur">Latur</option>
+                </select>
               </div>
-              <input
-                type="text"
-                required
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Enter complete address..."
-                className="w-full pl-10 pr-4 py-3 border border-border-subtle rounded-xl text-sm font-semibold focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent bg-surface-secondary focus:bg-surface-primary transition-all duration-200 text-text-primary placeholder:text-text-secondary/50"
-              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-text-primary block mb-1.5">
+                Full Exact Address <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  value={fullAddress}
+                  onChange={(e) => setFullAddress(e.target.value)}
+                  placeholder="Flat No, Building, Street, Landmark"
+                  className="w-full px-4 py-3 border border-border-subtle rounded-xl text-sm font-semibold focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent bg-surface-secondary focus:bg-surface-primary transition-all duration-200 text-text-primary placeholder:text-text-secondary/50"
+                />
+              </div>
             </div>
           </div>
 

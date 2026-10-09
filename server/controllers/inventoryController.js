@@ -242,7 +242,7 @@ const addPartToJob = async (req, res, next) => {
     session.startTransaction();
 
     try {
-      const job = await Job.findById(jobId).session(session);
+      const job = await Job.findOne({ $or: [{ _id: jobId }, { serviceRequest: jobId }] }).session(session);
       if (!job) throw new Error('Job not found');
 
       if (job.technician.toString() !== req.user._id.toString()) {
@@ -301,7 +301,13 @@ const addPartToJob = async (req, res, next) => {
       await session.commitTransaction();
       session.endSession();
 
-      res.status(200).json({ success: true, job });
+      // Return the aggregated job format that the frontend expects
+      const { aggregateJobData } = require('./requestController');
+      const ServiceRequest = require('../models/ServiceRequest');
+      const requestLean = await ServiceRequest.findById(job.serviceRequest).populate('assignedTechnician').lean();
+      const aggregated = await aggregateJobData(requestLean);
+
+      res.status(200).json({ success: true, job: aggregated });
     } catch (err) {
       await session.abortTransaction();
       session.endSession();

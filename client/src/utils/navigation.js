@@ -33,8 +33,7 @@ export const ADMIN_NAVIGATION = [
     section: 'SERVICE OPERATIONS',
     items: [
       { label: 'Service Requests', path: '/admin/requests', icon: FileText },
-      { label: 'Jobs', path: '/admin/jobs', icon: Briefcase },
-      { label: 'Dispatch Center', path: '/admin/dispatch', icon: Navigation }
+      { label: 'Jobs', path: '/admin/jobs', icon: Briefcase }
     ]
   },
   {

@@ -73,12 +73,30 @@ Seed the development databases securely. Run from the server folder:
 node scripts/seedData.js
 ```
 
-### 6. Production Build
+### 6. Production Build (Local)
 From the `client` directory run:
 ```bash
 npm run build
 ```
 The static assets can be served by configuring `NODE_ENV=production` inside the server.
+
+## Deployment Guide
+
+FieldOps is designed to be easily deployable using modern PaaS providers. 
+
+### Frontend (Vercel)
+The project root includes a `vercel.json` file configured for deploying the frontend.
+1. Push your repository to GitHub.
+2. Import the project in Vercel.
+3. The Build Command is already set to `cd client && npm install && npm run build` via `vercel.json`.
+4. Add your Environment Variables (`VITE_API_URL` pointing to your deployed backend, `VITE_STRIPE_PUBLISHABLE_KEY`).
+
+### Backend (Docker / Render / Railway)
+A `Dockerfile` is provided in the `server` directory for containerized deployment.
+1. Deploy via a service like Render or Railway by pointing to the `server` folder.
+2. If using Render, create a New Web Service, connect your repo, and set the Root Directory to `server`.
+3. Set the Environment to `Docker` or `Node`.
+4. Ensure you populate all Environment Variables (Stripe, Resend, Twilio, MongoDB URI, etc.).
 
 ## Payment & Notification Architectures
 - **Payments:** Fully integrated with Stripe. The backend generates secure Stripe Checkout sessions and listens via a Webhook (`/api/payments/webhook`) to automatically mark invoices as `PAID` upon successful transaction.

@@ -102,7 +102,8 @@ export default function RequestDetailsModal({ job, onClose, onCancel, onReschedu
             <div className="p-4 bg-white border border-slate-200/80 rounded-xl space-y-1">
               <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block">Service Address</span>
               <span className="text-slate-800 font-extrabold leading-relaxed flex items-start gap-1">
-                <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" /> {job.location}
+                <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" /> 
+                <span className="line-clamp-2">{job.fullAddress || job.location}</span>
               </span>
             </div>
 

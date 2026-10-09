@@ -71,9 +71,6 @@ const rateLimit = require('express-rate-limit');
 // Middleware
 app.use(helmet());
 app.use(cors({ origin: allowedOrigins }));
-// Payment Webhook (MUST be before express.json so it can parse raw body)
-const paymentController = require('./controllers/paymentController');
-app.post('/api/payments/webhook', express.raw({type: 'application/json'}), paymentController.handleStripeWebhook);
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));

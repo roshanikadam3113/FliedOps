@@ -57,14 +57,8 @@ const acceptJob = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Request is already accepted or assigned' });
     }
 
-    // Instructor rule: matching area and specialty
-    if (req.user.location.toLowerCase() !== request.location.toLowerCase()) {
-      return res.status(400).json({ success: false, message: 'Your area must match the request location' });
-    }
-    const requestCategory = request.category || 'General Maintenance';
-    if (req.user.specialty.toLowerCase() !== requestCategory.toLowerCase()) {
-      return res.status(400).json({ success: false, message: 'Your specialty must match the request category' });
-    }
+    // Removed strict instructor rule forcing exact location/specialty matching for manual acceptance.
+    // If a technician sees it and wants to take it, we allow it.
 
     request.assignedTechnician = techId;
     request.status = REQUEST_STATUS.ASSIGNED;
@@ -205,7 +199,7 @@ const completeJob = async (req, res, next) => {
     await job.save();
 
     // Update ServiceRequest status as well to avoid inconsistency
-    await ServiceRequest.findByIdAndUpdate(requestId, { status: REQUEST_STATUS.ASSIGNED }); // Or COMPLETED if you want
+    await ServiceRequest.findByIdAndUpdate(requestId, { status: REQUEST_STATUS.COMPLETED });
 
     // Generate Invoice
     const existingInvoice = await Invoice.findOne({ job: job._id });
@@ -215,7 +209,7 @@ const completeJob = async (req, res, next) => {
 
     // Generate unique human-readable invoice number
     // Format: INV-YYYY-XXXXXX
-    const lastInvoice = await Invoice.findOne().sort({ createdAt: -1 });
+    const lastInvoice = await Invoice.findOne().sort({ invoiceNumber: -1 });
     let nextNumber = '000001';
     if (lastInvoice && lastInvoice.invoiceNumber) {
       const parts = lastInvoice.invoiceNumber.split('-');
